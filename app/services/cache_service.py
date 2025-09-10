@@ -10,28 +10,45 @@ logger = logging.getLogger(__name__)
 class CacheService:
     def __init__(self):
         self.redis_client = None
-        self._init_redis()
+        self._memory_cache = {}
+        self._redis_initialized = False
     
     def _init_redis(self):
         """初始化Redis连接"""
+        if self._redis_initialized:
+            return
+            
         try:
+            # 检查是否有应用上下文
+            if hasattr(current_app, 'config'):
+                host = current_app.config.get('REDIS_HOST', 'localhost')
+                port = current_app.config.get('REDIS_PORT', 6379)
+                db = current_app.config.get('REDIS_DB', 0)
+            else:
+                # 没有应用上下文时使用默认配置
+                host = 'localhost'
+                port = 6379
+                db = 0
+                
             self.redis_client = redis.Redis(
-                host=current_app.config.get('REDIS_HOST', 'localhost'),
-                port=current_app.config.get('REDIS_PORT', 6379),
-                db=current_app.config.get('REDIS_DB', 0),
+                host=host,
+                port=port,
+                db=db,
                 decode_responses=True
             )
             # 测试连接
             self.redis_client.ping()
             logger.info("Redis连接成功")
+            self._redis_initialized = True
         except Exception as e:
             logger.warning(f"Redis连接失败，将使用内存缓存: {e}")
             self.redis_client = None
-            self._memory_cache = {}
+            self._redis_initialized = True
     
     def get(self, key: str) -> Optional[Any]:
         """获取缓存数据"""
         try:
+            self._init_redis()
             if self.redis_client:
                 data = self.redis_client.get(key)
                 if data:
@@ -52,6 +69,7 @@ class CacheService:
     def set(self, key: str, value: Any, timeout: int = 3600) -> bool:
         """设置缓存数据"""
         try:
+            self._init_redis()
             if self.redis_client:
                 return self.redis_client.setex(key, timeout, json.dumps(value, default=str))
             else:
@@ -68,6 +86,7 @@ class CacheService:
     def delete(self, key: str) -> bool:
         """删除缓存数据"""
         try:
+            self._init_redis()
             if self.redis_client:
                 return bool(self.redis_client.delete(key))
             else:
@@ -83,6 +102,7 @@ class CacheService:
     def exists(self, key: str) -> bool:
         """检查缓存是否存在"""
         try:
+            self._init_redis()
             if self.redis_client:
                 return bool(self.redis_client.exists(key))
             else:
@@ -114,6 +134,7 @@ class CacheService:
     def clear_pattern(self, pattern: str) -> int:
         """清除匹配模式的所有缓存"""
         try:
+            self._init_redis()
             if self.redis_client:
                 keys = self.redis_client.keys(pattern)
                 if keys:
