@@ -198,14 +198,21 @@ def get_recommendations():
     algorithm = request.args.get('algorithm', 'hybrid')
     limit = request.args.get('limit', 10, type=int)
     
+    # 验证算法类型
+    valid_algorithms = ['hybrid', 'collaborative_filtering', 'content_based', 'popularity']
+    if algorithm not in valid_algorithms:
+        algorithm = 'hybrid'
+    
     recommendation_service = RecommendationService()
     recommendations = recommendation_service.get_personalized_recommendations(
-        current_user.id, limit=limit
+        current_user.id, algorithm=algorithm, limit=limit
     )
     
     return jsonify({
         'success': True,
-        'data': [item.to_dict() for item in recommendations]
+        'data': recommendations,
+        'algorithm': algorithm,
+        'count': len(recommendations)
     })
 
 @api_bp.route('/recommendations/<int:item_id>/click', methods=['POST'])
@@ -220,6 +227,48 @@ def record_recommendation_click(item_id):
     )
     
     return jsonify({'success': True, 'message': '点击记录已保存'})
+
+@api_bp.route('/recommendations/performance', methods=['GET'])
+@login_required
+def get_recommendation_performance():
+    """获取推荐算法性能评估API"""
+    days = request.args.get('days', 30, type=int)
+    
+    recommendation_service = RecommendationService()
+    performance_data = recommendation_service.evaluate_recommendation_performance(days)
+    
+    return jsonify({
+        'success': True,
+        'data': performance_data
+    })
+
+@api_bp.route('/recommendations/insights', methods=['GET'])
+@login_required
+def get_recommendation_insights():
+    """获取推荐洞察分析API"""
+    recommendation_service = RecommendationService()
+    insights = recommendation_service.get_recommendation_insights()
+    
+    return jsonify({
+        'success': True,
+        'data': insights
+    })
+
+@api_bp.route('/recommendations/history', methods=['GET'])
+@login_required
+def get_user_recommendation_history():
+    """获取用户推荐历史API"""
+    limit = request.args.get('limit', 50, type=int)
+    
+    recommendation_service = RecommendationService()
+    history = recommendation_service.get_user_recommendation_history(
+        current_user.id, limit
+    )
+    
+    return jsonify({
+        'success': True,
+        'data': history
+    })
 
 @api_bp.route('/categories', methods=['GET'])
 def get_categories():

@@ -18,3 +18,9 @@ email_validator>=2.0.0
 requests>=2.31.0
 psutil>=5.8.0
 
+# 推荐算法相关
+scikit-learn>=1.0.0
+pandas>=1.3.0
+numpy>=1.21.0
+surprise>=1.1.0
+
