@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}编辑商品 - 校园跳蚤市场{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>编辑商品
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" id="editItemForm">
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- 基本信息 -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="title" class="form-label">商品标题 *</label>
+                                {{ form.title(class="form-control", placeholder="请输入商品标题", maxlength="200") }}
+                                {% if form.title.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.title.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="price" class="form-label">价格 (元) *</label>
+                                {{ form.price(class="form-control", placeholder="0") }}
+                                {% if form.price.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.price.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="original_price" class="form-label">原价 (元)</label>
+                                {{ form.original_price(class="form-control", placeholder="0") }}
+                                {% if form.original_price.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.original_price.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">商品描述 *</label>
+                            {{ form.description(class="form-control", rows="5", placeholder="请详细描述商品信息...") }}
+                            {% if form.description.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.description.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- 分类、成色和状态 -->
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="category_id" class="form-label">商品分类 *</label>
+                                {{ form.category_id(class="form-select") }}
+                                {% if form.category_id.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.category_id.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="condition" class="form-label">商品成色 *</label>
+                                {{ form.condition(class="form-select") }}
+                                {% if form.condition.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.condition.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="status" class="form-label">商品状态 *</label>
+                                {{ form.status(class="form-select") }}
+                                {% if form.status.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.status.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- 位置信息 -->
+                        <div class="mb-3">
+                            <label for="location" class="form-label">位置信息</label>
+                            {{ form.location(class="form-control", placeholder="如：宿舍楼、教学楼等") }}
+                            {% if form.location.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.location.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- 联系信息 -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="contact_method" class="form-label">联系方式 *</label>
+                                {{ form.contact_method(class="form-select") }}
+                                {% if form.contact_method.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.contact_method.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="contact_info" class="form-label">联系信息</label>
+                                {{ form.contact_info(class="form-control", placeholder="如：微信号、QQ号、手机号等") }}
+                                {% if form.contact_info.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.contact_info.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- 商品图片管理 -->
+                        <div class="mb-4">
+                            <label class="form-label">商品图片</label>
+                            
+                            <!-- 当前图片显示 -->
+                            {% if item.get_images_list() %}
+                            <div class="mb-3">
+                                <h6 class="text-muted mb-3">当前图片：</h6>
+                                <div class="row">
+                                    {% for image in item.get_images_list() %}
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <div class="card">
+                                            <img src="{{ url_for('static', filename='uploads/items/' + image) }}" 
+                                                 class="card-img-top" 
+                                                 style="height: 150px; object-fit: cover;"
+                                                 alt="商品图片">
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- 图片上传 -->
+                            <div class="mb-3">
+                                <label for="images" class="form-label">上传新图片</label>
+                                {{ form.images(class="form-control", accept="image/*") }}
+                                <div class="form-text">
+                                    <i class="mdi mdi-information me-1"></i>
+                                    上传新图片将替换所有现有图片。支持 JPG、PNG、GIF、WebP 格式，最多5张。
+                                </div>
+                                {% if form.images.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.images.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- 图片预览 -->
+                            <div id="imagePreview" class="row" style="display: none;">
+                                <div class="col-12">
+                                    <h6 class="text-muted mb-3">新图片预览：</h6>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 提交按钮 -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('main.my_items') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>返回
+                            </a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.image-upload-container {
+    position: relative;
+    border: 2px dashed #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    text-align: center;
+    background-color: #f8f9fa;
+    transition: border-color 0.3s ease;
+}
+
+.image-upload-container:hover {
+    border-color: var(--primary-color);
+}
+
+.image-preview {
+    position: relative;
+    margin-top: 1rem;
+}
+
+.preview-img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 0.375rem;
+}
+
+.remove-image {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.remove-image:hover {
+    background: rgba(0, 0, 0, 0.9);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 图片上传预览功能
+    const imageInput = document.getElementById('images');
+    const imagePreview = document.getElementById('imagePreview');
+    
+    if (imageInput) {
+        imageInput.addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            
+            // 清空之前的预览
+            imagePreview.innerHTML = '<div class="col-12"><h6 class="text-muted mb-3">新图片预览：</h6></div>';
+            
+            if (files.length > 0) {
+                imagePreview.style.display = 'block';
+                
+                files.forEach((file, index) => {
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const previewDiv = document.createElement('div');
+                            previewDiv.className = 'col-md-3 col-sm-6 mb-3';
+                            previewDiv.innerHTML = `
+                                <div class="card">
+                                    <img src="${e.target.result}" 
+                                         class="card-img-top" 
+                                         style="height: 150px; object-fit: cover;"
+                                         alt="预览图片">
+                                    <div class="card-body p-2">
+                                        <small class="text-muted">${file.name}</small>
+                                    </div>
+                                </div>
+                            `;
+                            imagePreview.appendChild(previewDiv);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            } else {
+                imagePreview.style.display = 'none';
+            }
+        });
+    }
+    
+    // 价格输入限制
+    const priceInput = document.getElementById('price');
+    const originalPriceInput = document.getElementById('original_price');
+    
+    [priceInput, originalPriceInput].forEach(input => {
+        if (input) {
+            input.addEventListener('input', function() {
+                let value = this.value;
+                // 只保留数字和小数点
+                value = value.replace(/[^\d.]/g, '');
+                // 确保只有一个小数点
+                let parts = value.split('.');
+                if (parts.length > 2) {
+                    value = parts[0] + '.' + parts.slice(1).join('');
+                }
+                // 限制小数点后最多2位
+                if (parts.length === 2 && parts[1].length > 2) {
+                    value = parts[0] + '.' + parts[1].substring(0, 2);
+                }
+                this.value = value;
+            });
+            
+            // 失焦时验证范围
+            input.addEventListener('blur', function() {
+                const value = parseFloat(this.value);
+                if (!isNaN(value) && (value < 0 || value > 9999.99)) {
+                    alert('价格必须在0-9999.99之间！');
+                    this.focus();
+                }
+            });
+        }
+    });
+    
+    // 表单验证
+    const form = document.getElementById('editItemForm');
+    form.addEventListener('submit', function(e) {
+        const title = document.getElementById('title').value.trim();
+        const description = document.getElementById('description').value.trim();
+        const price = document.getElementById('price').value;
+        const category = document.getElementById('category_id').value;
+        const condition = document.getElementById('condition').value;
+        const contactMethod = document.getElementById('contact_method').value;
+        const status = document.getElementById('status').value;
+        
+        if (!title || !description || !price || !category || !condition || !contactMethod || !status) {
+            e.preventDefault();
+            alert('请填写所有必填字段！');
+            return false;
+        }
+        
+        const priceValue = parseFloat(price);
+        if (isNaN(priceValue) || priceValue < 0 || priceValue > 9999.99) {
+            e.preventDefault();
+            alert('价格必须在0-9999.99之间！');
+            return false;
+        }
+        
+        const originalPrice = document.getElementById('original_price').value;
+        if (originalPrice) {
+            const originalPriceValue = parseFloat(originalPrice);
+            if (isNaN(originalPriceValue) || originalPriceValue < 0 || originalPriceValue > 9999.99) {
+                e.preventDefault();
+                alert('原价必须在0-9999.99之间！');
+                return false;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

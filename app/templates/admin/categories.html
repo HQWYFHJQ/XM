@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}分类管理 - 管理后台{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-tags me-2"></i>分类管理
+                </h2>
+                <div>
+                    <a href="{{ url_for('admin.create_category') }}" class="btn btn-primary me-2">
+                        <i class="fas fa-plus me-2"></i>新增分类
+                    </a>
+                    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>返回后台
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分类列表 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">分类列表 (共 {{ categories|length }} 个分类)</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if categories %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>分类信息</th>
+                                    <th>父分类</th>
+                                    <th>排序</th>
+                                    <th>商品数量</th>
+                                    <th>状态</th>
+                                    <th>创建时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category in categories %}
+                                <tr>
+                                    <td>{{ category.id }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if category.icon %}
+                                            <i class="{{ category.icon }} me-2 text-primary"></i>
+                                            {% else %}
+                                            <i class="fas fa-tag me-2 text-muted"></i>
+                                            {% endif %}
+                                            <div>
+                                                <h6 class="mb-1">{{ category.name }}</h6>
+                                                {% if category.description %}
+                                                <small class="text-muted">{{ category.description }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if category.parent %}
+                                        <span class="badge bg-light text-dark">{{ category.parent.name }}</span>
+                                        {% else %}
+                                        <span class="text-muted">顶级分类</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ category.sort_order or 0 }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ category.items.count() }}</span>
+                                    </td>
+                                    <td>
+                                        {% if category.is_active %}
+                                        <span class="badge bg-success">启用</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">禁用</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ category.created_at | beijing_datetime }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('admin.edit_category', category_id=category.id) }}" 
+                                               class="btn btn-outline-primary" title="编辑分类">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-{% if category.is_active %}danger{% else %}success{% endif %}" 
+                                                    onclick="toggleCategoryStatus({{ category.id }}, {{ category.is_active|lower }})" 
+                                                    title="{% if category.is_active %}禁用分类{% else %}启用分类{% endif %}">
+                                                <i class="fas fa-{% if category.is_active %}ban{% else %}check{% endif %}"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger" 
+                                                    onclick="deleteCategory({{ category.id }}, '{{ category.name }}')" 
+                                                    title="删除分类">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">暂无分类数据</h5>
+                        <p class="text-muted">还没有创建任何商品分类</p>
+                        <a href="{{ url_for('admin.create_category') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>创建第一个分类
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分类统计 -->
+    {% if categories %}
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">分类统计</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h4 class="text-primary">{{ categories|selectattr('is_active')|list|length }}</h4>
+                                <p class="text-muted mb-0">启用分类</p>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h4 class="text-warning">{{ categories|rejectattr('is_active')|list|length }}</h4>
+                                <p class="text-muted mb-0">禁用分类</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">商品分布</h5>
+                </div>
+                <div class="card-body">
+                    {% set category_counts = [] %}
+                    {% for category in categories %}
+                        {% set _ = category_counts.append(category.items.count()) %}
+                    {% endfor %}
+                    {% set total_items = category_counts|sum %}
+                    {% if total_items > 0 %}
+                    <div class="mb-2">
+                        <small class="text-muted">总商品数: {{ total_items }}</small>
+                    </div>
+                    {% for category in categories[:5] %}
+                        {% set category_item_count = category.items.count() %}
+                        {% if category_item_count > 0 %}
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <small>{{ category.name }}</small>
+                            <small class="text-muted">{{ category_item_count }}</small>
+                        </div>
+                        <div class="progress mb-2" style="height: 4px;">
+                            <div class="progress-bar" role="progressbar" 
+                                 style="width: {{ (category_item_count / total_items * 100)|round(1) }}%"></div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted mb-0">暂无商品数据</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleCategoryStatus(categoryId, isActive) {
+    const action = isActive ? '禁用' : '启用';
+    if (confirm(`确定要${action}该分类吗？`)) {
+        fetch(`/admin/categories/${categoryId}/toggle_status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || '操作失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('操作失败，请重试');
+        });
+    }
+}
+
+function deleteCategory(categoryId, categoryName) {
+    if (confirm(`确定要删除分类"${categoryName}"吗？\n\n注意：删除分类将影响该分类下的所有商品！`)) {
+        fetch(`/admin/categories/${categoryId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || '删除失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('删除失败，请重试');
+        });
+    }
+}
+</script>
+{% endblock %}

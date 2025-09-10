@@ -1,0 +1,754 @@
+{% extends "admin/base.html" %}
+
+{% block title %}用户资料修改审核{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">用户资料修改审核</h4>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="location.reload()">
+                            <i class="fas fa-sync-alt"></i> 刷新
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- 筛选器 -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <select class="form-select" id="statusFilter" onchange="filterAudits()">
+                                <option value="">全部状态</option>
+                                <option value="pending">待审核</option>
+                                <option value="approved">已通过</option>
+                                <option value="rejected">已拒绝</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" id="searchInput" placeholder="搜索用户名或邮箱..." onkeyup="searchAudits()">
+                        </div>
+                    </div>
+
+                    <!-- 审核列表 -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>用户</th>
+                                    <th>修改内容</th>
+                                    <th>状态</th>
+                                    <th>申请时间</th>
+                                    <th>审核时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for audit in audits %}
+                                <tr>
+                                    <td>{{ audit.id }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm me-2">
+                                                {% if audit.user.avatar and audit.user.avatar != 'None' and audit.user.avatar != '' and audit.user.avatar != 'null' %}
+                                                    <img src="{{ url_for('static', filename='uploads/avatars/' + audit.user.avatar) }}" 
+                                                         alt="头像" 
+                                                         style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;"
+                                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                    <div class="avatar-title bg-primary text-white" style="width: 32px; height: 32px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 14px;">
+                                                        {{ audit.user.username[0].upper() }}
+                                                    </div>
+                                                {% else %}
+                                                    <div class="avatar-title bg-primary text-white" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+                                                        {{ audit.user.username[0].upper() }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold">{{ audit.user.username }}</div>
+                                                <small class="text-muted">{{ audit.user.email }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-info" 
+                                                data-audit-id="{{ audit.id }}"
+                                                data-old-data="{{ audit.old_data|e if audit.old_data else '{}' }}"
+                                                data-new-data="{{ audit.new_data|e if audit.new_data else '{}' }}"
+                                                data-item-status="{{ audit.item_status|e if audit.item_status else '{}' }}"
+                                                data-item-notes="{{ audit.item_notes|e if audit.item_notes else '{}' }}"
+                                                onclick="showChangesFromButton(this)">
+                                            <i class="fas fa-eye"></i> 查看修改
+                                        </button>
+                                    </td>
+                                    <td>
+                                        {% if audit.status == 'pending' %}
+                                            <span class="badge bg-warning">待审核</span>
+                                        {% elif audit.status == 'approved' %}
+                                            <span class="badge bg-success">已通过</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">已拒绝</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ audit.created_at.strftime('%Y-%m-%d %H:%M') if audit.created_at else '-' }}</td>
+                                    <td>{{ audit.reviewed_at.strftime('%Y-%m-%d %H:%M') if audit.reviewed_at else '-' }}</td>
+                                    <td>
+                                        {% if audit.status == 'pending' %}
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button class="btn btn-success" 
+                                                        data-audit-id="{{ audit.id }}"
+                                                        data-new-data="{{ audit.new_data|e if audit.new_data else '{}' }}"
+                                                        data-item-status="{{ audit.item_status|e if audit.item_status else '{}' }}"
+                                                        data-item-notes="{{ audit.item_notes|e if audit.item_notes else '{}' }}"
+                                                        onclick="showItemAuditFromButton(this)">
+                                                    <i class="fas fa-check"></i> 单项审核
+                                                </button>
+                                                <button class="btn btn-outline-success" data-audit-id="{{ audit.id }}" onclick="approveAuditFromButton(this)">
+                                                    <i class="fas fa-check"></i> 全部通过
+                                                </button>
+                                                <button class="btn btn-outline-danger" data-audit-id="{{ audit.id }}" onclick="rejectAuditFromButton(this)">
+                                                    <i class="fas fa-times"></i> 全部拒绝
+                                                </button>
+                                            </div>
+                                        {% else %}
+                                            <button class="btn btn-sm btn-outline-info" 
+                                                    data-audit-id="{{ audit.id }}"
+                                                    data-item-status="{{ audit.item_status|e if audit.item_status else '{}' }}"
+                                                    data-item-notes="{{ audit.item_notes|e if audit.item_notes else '{}' }}"
+                                                    onclick="showAuditDetailsFromButton(this)">
+                                                <i class="fas fa-info-circle"></i> 查看详情
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 分页 -->
+                    {% if pagination %}
+                    <nav aria-label="审核分页">
+                        {{ pagination.links }}
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 修改内容对比模态框 -->
+<div class="modal fade" id="changesModal" tabindex="-1" aria-labelledby="changesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changesModalLabel">修改内容对比</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-danger">修改前</h6>
+                        <div id="oldData" class="border p-3 rounded" style="background-color: #fff5f5;"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success">修改后</h6>
+                        <div id="newData" class="border p-3 rounded" style="background-color: #f0fff4;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 单项审核模态框 -->
+<div class="modal fade" id="itemAuditModal" tabindex="-1" aria-labelledby="itemAuditModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="itemAuditModalLabel">单项审核</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="itemAuditContent">
+                    <!-- 动态内容 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="completeAuditBtn" onclick="completeItemAudit()" disabled>
+                    <i class="fas fa-check-circle"></i> 审核完成
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 审核详情模态框 -->
+<div class="modal fade" id="auditDetailsModal" tabindex="-1" aria-labelledby="auditDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="auditDetailsModalLabel">审核详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="auditDetailsContent">
+                    <!-- 动态内容 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 审核通过模态框 -->
+<div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="approveModalLabel">审核通过</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="approveForm">
+                    <div class="mb-3">
+                        <label for="approveNotes" class="form-label">管理员备注（可选）</label>
+                        <textarea class="form-control" id="approveNotes" rows="3" 
+                                  placeholder="请输入审核备注..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" onclick="confirmApprove()">确认通过</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 审核拒绝模态框 -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rejectModalLabel">审核拒绝</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="rejectForm">
+                    <div class="mb-3">
+                        <label for="rejectReason" class="form-label">拒绝原因 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="rejectReason" rows="3" 
+                                  placeholder="请输入拒绝原因..." required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rejectNotes" class="form-label">管理员备注（可选）</label>
+                        <textarea class="form-control" id="rejectNotes" rows="3" 
+                                  placeholder="请输入审核备注..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" onclick="confirmReject()">确认拒绝</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-sm {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-sm img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.avatar-title {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.field-item {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: #f8f9fa;
+}
+
+.field-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.field-name {
+    font-weight: 600;
+    color: #495057;
+}
+
+.field-status {
+    margin-left: auto;
+}
+
+.status-pending {
+    color: #ffc107;
+}
+
+.status-approved {
+    color: #198754;
+}
+
+.status-rejected {
+    color: #dc3545;
+}
+
+.audit-actions {
+    margin-top: 10px;
+}
+
+.audit-notes {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+</style>
+
+<script>
+let currentAuditId = null;
+let currentItemStatus = {};
+let currentItemNotes = {};
+
+function showChangesFromButton(button) {
+    const auditId = button.getAttribute('data-audit-id');
+    const oldData = button.getAttribute('data-old-data');
+    const newData = button.getAttribute('data-new-data');
+    const itemStatus = button.getAttribute('data-item-status');
+    const itemNotes = button.getAttribute('data-item-notes');
+    showChanges(auditId, oldData, newData, itemStatus, itemNotes);
+}
+
+function showItemAuditFromButton(button) {
+    const auditId = button.getAttribute('data-audit-id');
+    const newData = button.getAttribute('data-new-data');
+    const itemStatus = button.getAttribute('data-item-status');
+    const itemNotes = button.getAttribute('data-item-notes');
+    showItemAudit(auditId, newData, itemStatus, itemNotes);
+}
+
+function showAuditDetailsFromButton(button) {
+    const auditId = button.getAttribute('data-audit-id');
+    const itemStatus = button.getAttribute('data-item-status');
+    const itemNotes = button.getAttribute('data-item-notes');
+    showAuditDetails(auditId, itemStatus, itemNotes);
+}
+
+function approveAuditFromButton(button) {
+    const auditId = button.getAttribute('data-audit-id');
+    approveAudit(auditId);
+}
+
+function rejectAuditFromButton(button) {
+    const auditId = button.getAttribute('data-audit-id');
+    rejectAudit(auditId);
+}
+
+function showChanges(auditId, oldData, newData, itemStatus, itemNotes) {
+    try {
+        const old = JSON.parse(oldData);
+        const new_ = JSON.parse(newData);
+        const status = itemStatus ? JSON.parse(itemStatus) : {};
+        const notes = itemNotes ? JSON.parse(itemNotes) : {};
+        
+        let oldHtml = '<ul class="list-unstyled mb-0">';
+        let newHtml = '<ul class="list-unstyled mb-0">';
+        
+        for (const key in new_) {
+            if (old[key] !== new_[key]) {
+                const statusClass = status[key] === 'approved' ? 'text-success' : 
+                                  status[key] === 'rejected' ? 'text-danger' : 'text-warning';
+                const statusIcon = status[key] === 'approved' ? '✓' : 
+                                 status[key] === 'rejected' ? '✗' : '⏳';
+                
+                oldHtml += `<li><strong>${getFieldName(key)}:</strong> ${old[key] || '无'}</li>`;
+                newHtml += `<li class="${statusClass}"><strong>${getFieldName(key)}:</strong> ${new_[key] || '无'} <span class="badge bg-light text-dark">${statusIcon}</span></li>`;
+                
+                if (notes[key]) {
+                    newHtml += `<li class="text-muted small">备注: ${notes[key]}</li>`;
+                }
+            }
+        }
+        
+        oldHtml += '</ul>';
+        newHtml += '</ul>';
+        
+        document.getElementById('oldData').innerHTML = oldHtml;
+        document.getElementById('newData').innerHTML = newHtml;
+        
+        const modal = new bootstrap.Modal(document.getElementById('changesModal'));
+        modal.show();
+    } catch (e) {
+        alert('数据解析错误: ' + e.message);
+    }
+}
+
+function showItemAudit(auditId, newData, itemStatus, itemNotes) {
+    currentAuditId = auditId;
+    currentItemStatus = itemStatus ? JSON.parse(itemStatus) : {};
+    currentItemNotes = itemNotes ? JSON.parse(itemNotes) : {};
+    
+    try {
+        const new_ = JSON.parse(newData);
+        let content = '<div class="row">';
+        
+        for (const key in new_) {
+            const status = currentItemStatus[key] || 'pending';
+            const notes = currentItemNotes[key] || '';
+            
+            content += `
+                <div class="col-md-6">
+                    <div class="field-item">
+                        <div class="field-header">
+                            <span class="field-name">${getFieldName(key)}</span>
+                            <span class="field-status status-${status}">
+                                ${status === 'approved' ? '✓ 已通过' : 
+                                  status === 'rejected' ? '✗ 已拒绝' : '⏳ 待审核'}
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <strong>新值:</strong> ${new_[key] || '无'}
+                        </div>
+                        <div class="mb-2">
+                            <label for="notes_${key}" class="form-label small">审核备注:</label>
+                            <textarea class="form-control form-control-sm" id="notes_${key}" rows="2" 
+                                      placeholder="请输入审核备注（可选）">${notes || ''}</textarea>
+                        </div>
+                        <div class="audit-actions">
+                            ${status === 'pending' ? `
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="audit_${key}" id="approve_${key}" value="approved" onchange="handleRadioChange('${key}')">
+                                    <label class="form-check-label text-success" for="approve_${key}">
+                                        <i class="fas fa-check"></i> 通过
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="audit_${key}" id="reject_${key}" value="rejected" onchange="handleRadioChange('${key}')">
+                                    <label class="form-check-label text-danger" for="reject_${key}">
+                                        <i class="fas fa-times"></i> 拒绝
+                                    </label>
+                                </div>
+                            ` : `
+                                <button class="btn btn-sm btn-outline-primary" onclick="editItemNotes('${key}')">
+                                    <i class="fas fa-edit"></i> 编辑备注
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        content += '</div>';
+        document.getElementById('itemAuditContent').innerHTML = content;
+        
+        // 初始化审核完成按钮状态
+        checkAllFieldsSelected();
+        
+        const modal = new bootstrap.Modal(document.getElementById('itemAuditModal'));
+        modal.show();
+    } catch (e) {
+        alert('数据解析错误: ' + e.message);
+    }
+}
+
+function showAuditDetails(auditId, itemStatus, itemNotes) {
+    currentItemStatus = itemStatus ? JSON.parse(itemStatus) : {};
+    currentItemNotes = itemNotes ? JSON.parse(itemNotes) : {};
+    
+    let content = '<div class="row">';
+    
+    for (const key in currentItemStatus) {
+        const status = currentItemStatus[key];
+        const notes = currentItemNotes[key] || '';
+        
+        content += `
+            <div class="col-md-6">
+                <div class="field-item">
+                    <div class="field-header">
+                        <span class="field-name">${getFieldName(key)}</span>
+                        <span class="field-status status-${status}">
+                            ${status === 'approved' ? '✓ 已通过' : 
+                              status === 'rejected' ? '✗ 已拒绝' : '⏳ 待审核'}
+                        </span>
+                    </div>
+                    ${notes ? `<div class="audit-notes"><strong>备注:</strong> ${notes}</div>` : ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    content += '</div>';
+    document.getElementById('auditDetailsContent').innerHTML = content;
+    
+    const modal = new bootstrap.Modal(document.getElementById('auditDetailsModal'));
+    modal.show();
+}
+
+function handleRadioChange(fieldName) {
+    // 检查是否所有字段都已选择
+    checkAllFieldsSelected();
+}
+
+function checkAllFieldsSelected() {
+    const allFields = document.querySelectorAll('input[type="radio"][name^="audit_"]');
+    const fieldGroups = {};
+    
+    // 按字段分组
+    allFields.forEach(radio => {
+        const fieldName = radio.name.replace('audit_', '');
+        if (!fieldGroups[fieldName]) {
+            fieldGroups[fieldName] = [];
+        }
+        fieldGroups[fieldName].push(radio);
+    });
+    
+    // 检查每个字段组是否都有选择
+    let allSelected = true;
+    for (const fieldName in fieldGroups) {
+        const selected = fieldGroups[fieldName].some(radio => radio.checked);
+        if (!selected) {
+            allSelected = false;
+            break;
+        }
+    }
+    
+    // 启用/禁用审核完成按钮
+    const completeBtn = document.getElementById('completeAuditBtn');
+    if (completeBtn) {
+        completeBtn.disabled = !allSelected;
+    }
+}
+
+function completeItemAudit() {
+    // 收集所有字段的审核结果
+    const allFields = document.querySelectorAll('input[type="radio"][name^="audit_"]');
+    const fieldGroups = {};
+    const auditResults = {};
+    
+    // 按字段分组
+    allFields.forEach(radio => {
+        const fieldName = radio.name.replace('audit_', '');
+        if (!fieldGroups[fieldName]) {
+            fieldGroups[fieldName] = [];
+        }
+        fieldGroups[fieldName].push(radio);
+    });
+    
+    // 收集每个字段的审核结果和备注
+    for (const fieldName in fieldGroups) {
+        const selectedRadio = fieldGroups[fieldName].find(radio => radio.checked);
+        const notes = document.getElementById(`notes_${fieldName}`).value;
+        
+        if (selectedRadio) {
+            auditResults[fieldName] = {
+                status: selectedRadio.value,
+                notes: notes || ''
+            };
+        }
+    }
+    
+    // 发送审核结果
+    fetch('/admin/audit/user-profile-complete', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            audit_id: currentAuditId,
+            audit_results: auditResults
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('操作失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('操作失败: ' + error.message);
+    });
+}
+
+function auditItem(fieldName, status) {
+    const notes = document.getElementById(`notes_${fieldName}`).value;
+    
+    fetch('/admin/audit/user-profile-item', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            audit_id: currentAuditId,
+            field_name: fieldName,
+            status: status,
+            admin_notes: notes || ''
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('操作失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('操作失败: ' + error.message);
+    });
+}
+
+function editItemNotes(fieldName) {
+    const currentNotes = currentItemNotes[fieldName] || '';
+    const notesInput = document.getElementById(`notes_${fieldName}`);
+    if (notesInput) {
+        notesInput.value = currentNotes;
+        notesInput.focus();
+    }
+    
+    // 不需要立即提交，用户可以编辑后手动提交
+    return;
+}
+
+function approveAudit(auditId) {
+    currentAuditId = auditId;
+    const modal = new bootstrap.Modal(document.getElementById('approveModal'));
+    modal.show();
+}
+
+function rejectAudit(auditId) {
+    currentAuditId = auditId;
+    const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+    modal.show();
+}
+
+function confirmApprove() {
+    const notes = document.getElementById('approveNotes').value;
+    
+    fetch(`/admin/audits/user-profiles/${currentAuditId}/approve`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            admin_notes: notes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('操作失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('操作失败: ' + error.message);
+    });
+}
+
+function confirmReject() {
+    const reason = document.getElementById('rejectReason').value;
+    const notes = document.getElementById('rejectNotes').value;
+    
+    if (!reason.trim()) {
+        alert('请填写拒绝原因');
+        return;
+    }
+    
+    fetch(`/admin/audits/user-profiles/${currentAuditId}/reject`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            rejection_reason: reason,
+            admin_notes: notes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('操作失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('操作失败: ' + error.message);
+    });
+}
+
+function getFieldName(key) {
+    const fieldNames = {
+        'real_name': '真实姓名',
+        'phone': '手机号码',
+        'student_id': '学号',
+        'bio': '个人简介',
+        'interests': '兴趣爱好'
+    };
+    return fieldNames[key] || key;
+}
+
+function filterAudits() {
+    const status = document.getElementById('statusFilter').value;
+    const url = new URL(window.location);
+    if (status) {
+        url.searchParams.set('status', status);
+    } else {
+        url.searchParams.delete('status');
+    }
+    window.location.href = url.toString();
+}
+
+function searchAudits() {
+    const query = document.getElementById('searchInput').value;
+    const url = new URL(window.location);
+    if (query) {
+        url.searchParams.set('search', query);
+    } else {
+        url.searchParams.delete('search');
+    }
+    window.location.href = url.toString();
+}
+</script>
+{% endblock %}

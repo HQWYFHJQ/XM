@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block title %}发布商品 - 校园跳蚤市场{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-plus me-2"></i>发布新商品
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" id="createItemForm">
+                        <!-- 基本信息 -->
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="title" class="form-label">商品标题 *</label>
+                                <input type="text" class="form-control" id="title" name="title" 
+                                       placeholder="请输入商品标题" required maxlength="200">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="price" class="form-label">价格 (元) *</label>
+                                <input type="text" class="form-control" id="price" name="price" 
+                                       placeholder="0" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">商品描述 *</label>
+                            <textarea class="form-control" id="description" name="description" 
+                                      rows="5" placeholder="请详细描述商品信息..." required></textarea>
+                        </div>
+                        
+                        <!-- 分类和成色 -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="parent_category" class="form-label">商品分类 *</label>
+                                <select class="form-select" id="parent_category" name="parent_category" required>
+                                    <option value="">请选择一级分类</option>
+                                    {% for category in parent_categories %}
+                                    <option value="{{ category.id }}">{{ category.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="category_id" class="form-label">子分类 *</label>
+                                <select class="form-select" id="category_id" name="category_id" required disabled>
+                                    <option value="">请先选择一级分类</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="condition" class="form-label">商品成色</label>
+                                <select class="form-select" id="condition" name="condition">
+                                    <option value="good">良好</option>
+                                    <option value="new">全新</option>
+                                    <option value="like_new">几乎全新</option>
+                                    <option value="fair">一般</option>
+                                    <option value="poor">较差</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- 图片上传 -->
+                        <div class="mb-3">
+                            <label class="form-label">商品图片</label>
+                            <div class="row" id="imageUploads">
+                                {% for i in range(1, 6) %}
+                                <div class="col-md-4 mb-3">
+                                    <div class="image-upload-container">
+                                        <input type="file" class="form-control image-input" 
+                                               id="image_{{ i }}" name="image_{{ i }}" 
+                                               accept="image/*" onchange="previewImage(this, {{ i }})">
+                                        <div class="image-preview" id="preview_{{ i }}" style="display: none;">
+                                            <img class="preview-img">
+                                            <button type="button" class="btn-close remove-image" 
+                                                    onclick="removeImage({{ i }})"></button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <small class="text-muted">最多上传5张图片，建议尺寸800x600像素</small>
+                        </div>
+                        
+                        <!-- 标签 -->
+                        <div class="mb-3">
+                            <label for="tags" class="form-label">商品标签</label>
+                            <input type="text" class="form-control" id="tags" name="tags" 
+                                   placeholder="请输入标签，用逗号分隔，如：二手,九成新,便宜">
+                            <small class="text-muted">标签有助于其他用户找到你的商品</small>
+                        </div>
+                        
+                        <!-- 联系信息 -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="location" class="form-label">交易地点</label>
+                                <input type="text" class="form-control" id="location" name="location" 
+                                       placeholder="如：学校图书馆门口">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="contact_method" class="form-label">联系方式</label>
+                                <select class="form-select" id="contact_method" name="contact_method">
+                                    <option value="message">站内消息</option>
+                                    <option value="phone">电话</option>
+                                    <option value="wechat">微信</option>
+                                    <option value="qq">QQ</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="contact_info" class="form-label">联系信息</label>
+                            <input type="text" class="form-control" id="contact_info" name="contact_info" 
+                                   placeholder="如：微信号、QQ号或电话号码">
+                        </div>
+                        
+                        <!-- 提交按钮 -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('main.items') }}" class="btn btn-secondary me-md-2">取消</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>发布商品
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 多级分类选择功能
+document.addEventListener('DOMContentLoaded', function() {
+    const parentSelect = document.getElementById('parent_category');
+    const childSelect = document.getElementById('category_id');
+    
+    // 分类数据
+    const categoriesData = {{ categories_data | tojson }};
+    
+    parentSelect.addEventListener('change', function() {
+        const parentId = this.value;
+        childSelect.innerHTML = '<option value="">请选择子分类</option>';
+        
+        if (parentId) {
+            childSelect.disabled = false;
+            const parentCategory = categoriesData.find(cat => cat.id == parentId);
+            if (parentCategory && parentCategory.children) {
+                parentCategory.children.forEach(child => {
+                    const option = document.createElement('option');
+                    option.value = child.id;
+                    option.textContent = child.name;
+                    childSelect.appendChild(option);
+                });
+            }
+        } else {
+            childSelect.disabled = true;
+        }
+    });
+    
+    // 表单提交验证
+    document.getElementById('createItemForm').addEventListener('submit', function(e) {
+        if (!childSelect.value) {
+            e.preventDefault();
+            alert('请选择商品分类！');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.image-upload-container {
+    position: relative;
+    border: 2px dashed #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    text-align: center;
+    transition: border-color 0.3s ease;
+}
+
+.image-upload-container:hover {
+    border-color: var(--primary-color);
+}
+
+.image-preview {
+    position: relative;
+    margin-top: 0.5rem;
+}
+
+.preview-img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 0.375rem;
+}
+
+.remove-image {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function previewImage(input, index) {
+    const file = input.files[0];
+    const preview = document.getElementById(`preview_${index}`);
+    
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.querySelector('.preview-img').src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+function removeImage(index) {
+    const input = document.getElementById(`image_${index}`);
+    const preview = document.getElementById(`preview_${index}`);
+    
+    input.value = '';
+    preview.style.display = 'none';
+}
+
+// 价格输入限制（纯文本编辑，不自动格式化）
+const priceInput = document.getElementById('price');
+if (priceInput) {
+    // 只允许输入数字和小数点
+    priceInput.addEventListener('input', function() {
+        let value = this.value;
+        // 只保留数字和小数点
+        value = value.replace(/[^\d.]/g, '');
+        // 确保只有一个小数点
+        let parts = value.split('.');
+        if (parts.length > 2) {
+            value = parts[0] + '.' + parts.slice(1).join('');
+        }
+        // 限制小数点后最多2位
+        if (parts.length === 2 && parts[1].length > 2) {
+            value = parts[0] + '.' + parts[1].substring(0, 2);
+        }
+        this.value = value;
+    });
+    
+    // 失焦时验证范围
+    priceInput.addEventListener('blur', function() {
+        let value = parseFloat(this.value);
+        if (!isNaN(value)) {
+            if (value > 9999) {
+                this.value = '9999';
+                alert('价格不能超过9999');
+            } else if (value < 0) {
+                this.value = '0';
+                alert('价格不能小于0');
+            }
+        }
+    });
+    
+    // 防止粘贴非数字内容
+    priceInput.addEventListener('paste', function(e) {
+        e.preventDefault();
+        let paste = (e.clipboardData || window.clipboardData).getData('text');
+        // 只保留数字和小数点
+        paste = paste.replace(/[^\d.]/g, '');
+        // 确保只有一个小数点
+        let parts = paste.split('.');
+        if (parts.length > 2) {
+            paste = parts[0] + '.' + parts.slice(1).join('');
+        }
+        // 限制小数点后最多2位
+        if (parts.length === 2 && parts[1].length > 2) {
+            paste = parts[0] + '.' + parts[1].substring(0, 2);
+        }
+        this.value = paste;
+    });
+}
+
+// 表单验证
+document.getElementById('createItemForm').addEventListener('submit', function(e) {
+    const title = document.getElementById('title').value.trim();
+    const description = document.getElementById('description').value.trim();
+    const price = document.getElementById('price').value;
+    const category = document.getElementById('category_id').value;
+    
+    if (!title || !description || !price || !category) {
+        e.preventDefault();
+        alert('请填写所有必填字段！');
+        return false;
+    }
+    
+    if (parseFloat(price) < 0 || parseFloat(price) > 9999) {
+        e.preventDefault();
+        alert('价格必须在0-9999之间！');
+        return false;
+    }
+});
+</script>
+{% endblock %}

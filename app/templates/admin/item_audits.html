@@ -1,0 +1,520 @@
+{% extends "admin/base.html" %}
+
+{% block title %}商品审核 - 管理后台{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <h4 class="page-title">商品审核管理</h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">首页</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.audits') }}">审核管理</a></li>
+                    <li class="breadcrumb-item active">商品审核</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选器 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h4 class="header-title">商品审核列表</h4>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-md-end">
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('admin.item_audits', status='pending') }}" 
+                                       class="btn {% if current_status == 'pending' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                                        待审核
+                                    </a>
+                                    <a href="{{ url_for('admin.item_audits', status='approved') }}" 
+                                       class="btn {% if current_status == 'approved' %}btn-success{% else %}btn-outline-success{% endif %}">
+                                        已通过
+                                    </a>
+                                    <a href="{{ url_for('admin.item_audits', status='rejected') }}" 
+                                       class="btn {% if current_status == 'rejected' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                                        已拒绝
+                                    </a>
+                                    <a href="{{ url_for('admin.item_audits', status='all') }}" 
+                                       class="btn {% if current_status == 'all' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+                                        全部
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 审核列表 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-centered table-nowrap mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>商品信息</th>
+                                    <th>卖家</th>
+                                    <th>价格</th>
+                                    <th>发布时间</th>
+                                    <th>审核状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for audit in audits.items %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm bg-light rounded me-3">
+                                                {% if audit.item.get_main_image() %}
+                                                <img src="{{ url_for('static', filename='uploads/items/' + audit.item.get_main_image()) }}" 
+                                                     alt="{{ audit.item.title }}" class="avatar-sm rounded" style="width: 60px; height: 60px; object-fit: cover;">
+                                                {% else %}
+                                                <div class="avatar-sm bg-light rounded d-flex align-items-center justify-content-center">
+                                                    <i class="mdi mdi-package-variant text-muted"></i>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <h5 class="m-0 fw-normal">{{ audit.item.title }}</h5>
+                                                <p class="mb-0 text-muted">{{ audit.item.description[:50] }}{% if audit.item.description|length > 50 %}...{% endif %}</p>
+                                                <p class="mb-0 text-muted">
+                                                    <small>{{ audit.item.category.name if audit.item.category else '未分类' }} | {{ audit.item.condition }}</small>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm bg-light rounded-circle me-2">
+                                                {% if audit.item.seller.avatar and audit.item.seller.avatar != 'None' and audit.item.seller.avatar != '' and audit.item.seller.avatar != 'null' %}
+                                                <img src="{{ url_for('static', filename='uploads/avatars/' + audit.item.seller.avatar) }}" 
+                                                     alt="{{ audit.item.seller.username }}" 
+                                                     class="avatar-sm rounded-circle"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                <span class="avatar-title bg-primary text-white rounded-circle" style="display: none;">
+                                                    {{ audit.item.seller.username[0].upper() }}
+                                                </span>
+                                                {% else %}
+                                                <span class="avatar-title bg-primary text-white rounded-circle">
+                                                    {{ audit.item.seller.username[0].upper() }}
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <h6 class="m-0 fw-normal">{{ audit.item.seller.username }}</h6>
+                                                <p class="mb-0 text-muted">{{ audit.item.seller.email }}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <h5 class="m-0 fw-normal text-primary">¥{{ audit.item.price }}</h5>
+                                        {% if audit.item.original_price %}
+                                        <p class="mb-0 text-muted"><small>原价: ¥{{ audit.item.original_price }}</small></p>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ audit.created_at.strftime('%Y-%m-%d %H:%M') if audit.created_at else '' }}</td>
+                                    <td>
+                                        {% if audit.status == 'pending' %}
+                                        <span class="badge bg-warning">待审核</span>
+                                        {% elif audit.status == 'approved' %}
+                                        <span class="badge bg-success">已通过</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">已拒绝</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if audit.status == 'pending' %}
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-success btn-sm" 
+                                                    onclick="approveItem({{ audit.id }})">
+                                                <i class="mdi mdi-check"></i> 通过
+                                            </button>
+                                            <button type="button" class="btn btn-danger btn-sm" 
+                                                    onclick="rejectItem({{ audit.id }})">
+                                                <i class="mdi mdi-close"></i> 拒绝
+                                            </button>
+                                            <button type="button" class="btn btn-info btn-sm" 
+                                                    onclick="viewItem({{ audit.item.id }})">
+                                                <i class="mdi mdi-eye"></i> 查看
+                                            </button>
+                                        </div>
+                                        {% else %}
+                                        <button type="button" class="btn btn-info btn-sm" 
+                                                onclick="viewItem({{ audit.item.id }})">
+                                            <i class="mdi mdi-eye"></i> 查看
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 分页 -->
+                    {% if audits.pages > 1 %}
+                    <div class="row">
+                        <div class="col-sm-12 col-md-5">
+                            <div class="dataTables_info">
+                                显示第 {{ audits.per_page * (audits.page - 1) + 1 }} 到 
+                                {{ audits.per_page * audits.page if audits.page < audits.pages else audits.total }} 条，
+                                共 {{ audits.total }} 条记录
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-7">
+                            <div class="dataTables_paginate paging_simple_numbers">
+                                <ul class="pagination pagination-rounded justify-content-end">
+                                    {% if audits.has_prev %}
+                                    <li class="paginate_button page-item previous">
+                                        <a href="{{ url_for('admin.item_audits', page=audits.prev_num, status=current_status) }}" 
+                                           class="page-link">上一页</a>
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% for page_num in audits.iter_pages() %}
+                                        {% if page_num %}
+                                            {% if page_num != audits.page %}
+                                            <li class="paginate_button page-item">
+                                                <a href="{{ url_for('admin.item_audits', page=page_num, status=current_status) }}" 
+                                                   class="page-link">{{ page_num }}</a>
+                                            </li>
+                                            {% else %}
+                                            <li class="paginate_button page-item active">
+                                                <span class="page-link">{{ page_num }}</span>
+                                            </li>
+                                            {% endif %}
+                                        {% else %}
+                                        <li class="paginate_button page-item disabled">
+                                            <span class="page-link">…</span>
+                                        </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if audits.has_next %}
+                                    <li class="paginate_button page-item next">
+                                        <a href="{{ url_for('admin.item_audits', page=audits.next_num, status=current_status) }}" 
+                                           class="page-link">下一页</a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 商品详情模态框 -->
+<div class="modal fade" id="itemDetailModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">商品详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="itemDetailContent">
+                <!-- 商品详情内容将通过AJAX加载 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 审核通过模态框 -->
+<div class="modal fade" id="approveModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">审核通过</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="approveForm">
+                    <div class="mb-3">
+                        <label for="adminNotes" class="form-label">管理员备注（可选）</label>
+                        <textarea class="form-control" id="adminNotes" name="admin_notes" rows="3" 
+                                  placeholder="请输入备注信息..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" onclick="submitApprove()">确认通过</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 审核拒绝模态框 -->
+<div class="modal fade" id="rejectModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">审核拒绝</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="rejectForm">
+                    <div class="mb-3">
+                        <label for="rejectionReason" class="form-label">拒绝原因 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="rejectionReason" name="rejection_reason" rows="3" 
+                                  placeholder="请详细说明拒绝原因..." required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="adminNotesReject" class="form-label">管理员备注（可选）</label>
+                        <textarea class="form-control" id="adminNotesReject" name="admin_notes" rows="3" 
+                                  placeholder="请输入备注信息..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" onclick="submitReject()">确认拒绝</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentAuditId = null;
+
+function approveItem(auditId) {
+    currentAuditId = auditId;
+    $('#approveModal').modal('show');
+}
+
+function rejectItem(auditId) {
+    currentAuditId = auditId;
+    $('#rejectModal').modal('show');
+}
+
+function viewItem(itemId) {
+    $('#itemDetailModal').modal('show');
+    $('#itemDetailContent').html('<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">加载中...</span></div><p class="mt-2">商品详情加载中...</p></div>');
+    
+    // 通过AJAX加载商品详情
+    $.ajax({
+        url: `/admin/api/items/${itemId}`,
+        type: 'GET',
+        success: function(response) {
+            if (response.success) {
+                displayItemDetail(response.data);
+            } else {
+                $('#itemDetailContent').html(`<div class="alert alert-danger">${response.message}</div>`);
+            }
+        },
+        error: function() {
+            $('#itemDetailContent').html('<div class="alert alert-danger">加载商品详情失败，请重试</div>');
+        }
+    });
+}
+
+function displayItemDetail(item) {
+    let content = `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <h5>商品图片</h5>
+                    <div class="row">
+    `;
+    
+    if (item.main_image && item.main_image.url) {
+        content += `
+            <div class="col-12 mb-2">
+                <img src="${item.main_image.url}" alt="${item.title}" class="img-fluid rounded" style="max-height: 300px; object-fit: cover;">
+            </div>
+        `;
+    }
+    
+    if (item.images && item.images.length > 0) {
+        item.images.forEach(image => {
+            content += `
+                <div class="col-6 col-md-4 mb-2">
+                    <img src="${image.url}" alt="${item.title}" class="img-fluid rounded" style="height: 100px; object-fit: cover;">
+                </div>
+            `;
+        });
+    }
+    
+    content += `
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h4 class="text-primary">${item.title}</h4>
+                <p class="text-muted mb-3">${item.description}</p>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <strong>商品ID:</strong> ${item.id}
+                    </div>
+                    <div class="col-6">
+                        <strong>状态:</strong> 
+                        <span class="badge ${item.status === 'active' ? 'bg-success' : 'bg-secondary'}">${item.status === 'active' ? '上架' : '下架'}</span>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <strong>价格:</strong> 
+                        <span class="text-primary h5">¥${item.price}</span>
+                        ${item.original_price ? `<br><small class="text-muted">原价: ¥${item.original_price}</small>` : ''}
+                    </div>
+                    <div class="col-6">
+                        <strong>成色:</strong> ${item.condition}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <strong>分类:</strong> ${item.category ? item.category.name : '未分类'}
+                    </div>
+                    <div class="col-6">
+                        <strong>发布时间:</strong> ${new Date(item.created_at).toLocaleString()}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <h5>卖家信息</h5>
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+    `;
+    
+    if (item.seller.avatar_url) {
+        content += `<img src="${item.seller.avatar_url}" alt="${item.seller.username}" class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">`;
+    } else {
+        content += `<div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">${item.seller.username[0].toUpperCase()}</div>`;
+    }
+    
+    content += `
+                    </div>
+                    <div>
+                        <h6 class="mb-1">${item.seller.username}</h6>
+                        <p class="text-muted mb-0">${item.seller.email}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    $('#itemDetailContent').html(content);
+}
+
+function submitApprove() {
+    const adminNotes = $('#adminNotes').val();
+    
+    $.ajax({
+        url: `/admin/audits/items/${currentAuditId}/approve`,
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            admin_notes: adminNotes
+        }),
+        success: function(response) {
+            if (response.success) {
+                showAlert('success', response.message);
+                $('#approveModal').modal('hide');
+                location.reload();
+            } else {
+                showAlert('error', response.message);
+            }
+        },
+        error: function() {
+            showAlert('error', '操作失败，请重试');
+        }
+    });
+}
+
+function submitReject() {
+    const rejectionReason = $('#rejectionReason').val();
+    const adminNotes = $('#adminNotesReject').val();
+    
+    if (!rejectionReason.trim()) {
+        showAlert('error', '请填写拒绝原因');
+        return;
+    }
+    
+    $.ajax({
+        url: `/admin/audits/items/${currentAuditId}/reject`,
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            rejection_reason: rejectionReason,
+            admin_notes: adminNotes
+        }),
+        success: function(response) {
+            if (response.success) {
+                showAlert('success', response.message);
+                $('#rejectModal').modal('hide');
+                location.reload();
+            } else {
+                showAlert('error', response.message);
+            }
+        },
+        error: function() {
+            showAlert('error', '操作失败，请重试');
+        }
+    });
+}
+
+function showAlert(type, message) {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    $('.container-fluid').prepend(alertHtml);
+    
+    // 3秒后自动隐藏
+    setTimeout(function() {
+        $('.alert').fadeOut();
+    }, 3000);
+}
+</script>
+
+<style>
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-sm img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.avatar-title {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+</style>
+{% endblock %}

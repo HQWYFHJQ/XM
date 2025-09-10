@@ -1,0 +1,322 @@
+{% extends "admin/base.html" %}
+
+{% block title %}审核管理 - 管理后台{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <h4 class="page-title">审核管理</h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">首页</a></li>
+                    <li class="breadcrumb-item active">审核管理</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- 审核统计卡片 -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-6">
+                            <h5 class="text-muted fw-normal mt-0 text-truncate" title="待审核用户">待审核用户</h5>
+                            <h3 class="my-2 py-1">{{ audit_stats.pending_users }}</h3>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-end">
+                                <div id="total-revenue-chart" data-colors="#28a745"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-6">
+                            <h5 class="text-muted fw-normal mt-0 text-truncate" title="待审核商品">待审核商品</h5>
+                            <h3 class="my-2 py-1">{{ audit_stats.pending_items }}</h3>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-end">
+                                <div id="orders-chart" data-colors="#ffc107"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-6">
+                            <h5 class="text-muted fw-normal mt-0 text-truncate" title="待审核用户资料修改">待审核用户资料修改</h5>
+                            <h3 class="my-2 py-1">{{ audit_stats.pending_user_profiles }}</h3>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-end">
+                                <div id="customers-chart" data-colors="#dc3545"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-6">
+                            <h5 class="text-muted fw-normal mt-0 text-truncate" title="待审核商品资料修改">待审核商品资料修改</h5>
+                            <h3 class="my-2 py-1">{{ audit_stats.pending_item_profiles }}</h3>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-end">
+                                <div id="growth-chart" data-colors="#17a2b8"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 总待审核统计 -->
+    <div class="row">
+        <div class="col-xl-6 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-6">
+                            <h5 class="text-muted fw-normal mt-0 text-truncate" title="总待审核">总待审核</h5>
+                            <h3 class="my-2 py-1">{{ audit_stats.total_pending }}</h3>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-end">
+                                <div id="total-pending-chart" data-colors="#6c757d"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-6 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-6">
+                            <h5 class="text-muted fw-normal mt-0 text-truncate" title="审核效率">审核效率</h5>
+                            <h3 class="my-2 py-1">95%</h3>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-end">
+                                <div id="efficiency-chart" data-colors="#28a745"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-6">
+                            <h5 class="text-muted fw-normal mt-0 text-truncate" title="审核效率">审核效率</h5>
+                            <h3 class="my-2 py-1">95%</h3>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-end">
+                                <div id="growth-chart" data-colors="#17a2b8"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快速操作 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">快速操作</h4>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <a href="{{ url_for('admin.user_audits', status='pending') }}" class="btn btn-primary btn-lg w-100 mb-3">
+                                <i class="mdi mdi-account-check"></i> 用户审核
+                                {% if audit_stats.pending_users > 0 %}
+                                <span class="badge bg-danger ms-2">{{ audit_stats.pending_users }}</span>
+                                {% endif %}
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('admin.item_audits', status='pending') }}" class="btn btn-warning btn-lg w-100 mb-3">
+                                <i class="mdi mdi-package-variant"></i> 商品审核
+                                {% if audit_stats.pending_items > 0 %}
+                                <span class="badge bg-danger ms-2">{{ audit_stats.pending_items }}</span>
+                                {% endif %}
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('admin.user_profile_audits', status='pending') }}" class="btn btn-info btn-lg w-100 mb-3">
+                                <i class="mdi mdi-account-edit"></i> 用户资料修改审核
+                                {% if audit_stats.pending_user_profiles > 0 %}
+                                <span class="badge bg-danger ms-2">{{ audit_stats.pending_user_profiles }}</span>
+                                {% endif %}
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('admin.item_profile_audits', status='pending') }}" class="btn btn-success btn-lg w-100 mb-3">
+                                <i class="mdi mdi-package-variant-closed"></i> 商品资料修改审核
+                                {% if audit_stats.pending_item_profiles > 0 %}
+                                <span class="badge bg-danger ms-2">{{ audit_stats.pending_item_profiles }}</span>
+                                {% endif %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 最近审核记录 -->
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">最近用户审核</h4>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-centered mb-0">
+                            <thead>
+                                <tr>
+                                    <th>用户</th>
+                                    <th>状态</th>
+                                    <th>时间</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for audit in recent_user_audits %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm bg-light rounded-circle me-2">
+                                                <span class="avatar-title bg-primary text-white rounded-circle">
+                                                    {{ audit.user.username[0].upper() if audit.user else '?' }}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <h5 class="m-0 fw-normal">{{ audit.user.username if audit.user else '未知用户' }}</h5>
+                                                <p class="mb-0 text-muted">{{ audit.user.email if audit.user else '' }}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if audit.status == 'pending' %}
+                                        <span class="badge bg-warning">待审核</span>
+                                        {% elif audit.status == 'approved' %}
+                                        <span class="badge bg-success">已通过</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">已拒绝</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ audit.created_at.strftime('%m-%d %H:%M') if audit.created_at else '' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">最近商品审核</h4>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-centered mb-0">
+                            <thead>
+                                <tr>
+                                    <th>商品</th>
+                                    <th>状态</th>
+                                    <th>时间</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for audit in recent_item_audits %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm bg-light rounded-circle me-2">
+                                                <span class="avatar-title bg-info text-white rounded-circle">
+                                                    {{ audit.item.title[0].upper() if audit.item and audit.item.title else '?' }}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <h5 class="m-0 fw-normal">{{ audit.item.title if audit.item else '未知商品' }}</h5>
+                                                <p class="mb-0 text-muted">¥{{ audit.item.price if audit.item else '0' }}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if audit.status == 'pending' %}
+                                        <span class="badge bg-warning">待审核</span>
+                                        {% elif audit.status == 'approved' %}
+                                        <span class="badge bg-success">已通过</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">已拒绝</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ audit.created_at.strftime('%m-%d %H:%M') if audit.created_at else '' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-sm img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.avatar-title {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+</style>
+{% endblock %}

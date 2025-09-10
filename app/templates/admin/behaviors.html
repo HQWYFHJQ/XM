@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block title %}行为数据管理 - 管理后台{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-chart-line me-2"></i>行为数据管理
+                </h2>
+                <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>返回后台
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选条件 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="type" class="form-label">行为类型</label>
+                            <select class="form-select" id="type" name="type">
+                                <option value="all" {% if current_type == 'all' %}selected{% endif %}>全部类型</option>
+                                <option value="view" {% if current_type == 'view' %}selected{% endif %}>浏览</option>
+                                <option value="like" {% if current_type == 'like' %}selected{% endif %}>点赞</option>
+                                <option value="favorite" {% if current_type == 'favorite' %}selected{% endif %}>收藏</option>
+                                <option value="contact" {% if current_type == 'contact' %}selected{% endif %}>联系</option>
+                                <option value="search" {% if current_type == 'search' %}selected{% endif %}>搜索</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="days" class="form-label">时间范围</label>
+                            <select class="form-select" id="days" name="days">
+                                <option value="0" {% if current_days == 0 %}selected{% endif %}>全部时间</option>
+                                <option value="1" {% if current_days == 1 %}selected{% endif %}>最近1天</option>
+                                <option value="7" {% if current_days == 7 %}selected{% endif %}>最近7天</option>
+                                <option value="30" {% if current_days == 30 %}selected{% endif %}>最近30天</option>
+                                <option value="90" {% if current_days == 90 %}selected{% endif %}>最近90天</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-filter me-2"></i>筛选
+                            </button>
+                            <a href="{{ url_for('admin.behaviors') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-refresh me-2"></i>重置
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 行为统计概览 -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h4>{{ behaviors.total }}</h4>
+                    <small>总行为数</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h4>{{ behaviors.items|selectattr('behavior_type', 'equalto', 'view')|list|length }}</h4>
+                    <small>浏览行为</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h4>{{ behaviors.items|selectattr('behavior_type', 'equalto', 'like')|list|length }}</h4>
+                    <small>点赞行为</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h4>{{ behaviors.items|selectattr('behavior_type', 'equalto', 'favorite')|list|length }}</h4>
+                    <small>收藏行为</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h4>{{ behaviors.items|selectattr('behavior_type', 'equalto', 'contact')|list|length }}</h4>
+                    <small>联系行为</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-secondary text-white">
+                <div class="card-body text-center">
+                    <h4>{{ behaviors.items|selectattr('behavior_type', 'equalto', 'search')|list|length }}</h4>
+                    <small>搜索行为</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 行为数据列表 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">行为数据列表 (共 {{ behaviors.total }} 条记录)</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if behaviors.items %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>用户</th>
+                                    <th>行为类型</th>
+                                    <th>目标对象</th>
+                                    <th>详细信息</th>
+                                    <th>IP地址</th>
+                                    <th>时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for behavior in behaviors.items %}
+                                <tr>
+                                    <td>{{ behavior.id }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2">
+                                                {{ behavior.user.username[0].upper() }}
+                                            </div>
+                                            <div>
+                                                <strong>{{ behavior.user.username }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ behavior.user.real_name or '未设置姓名' }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if behavior.behavior_type == 'view' %}
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-eye me-1"></i>浏览
+                                        </span>
+                                        {% elif behavior.behavior_type == 'like' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-heart me-1"></i>点赞
+                                        </span>
+                                        {% elif behavior.behavior_type == 'favorite' %}
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-star me-1"></i>收藏
+                                        </span>
+                                        {% elif behavior.behavior_type == 'contact' %}
+                                        <span class="badge bg-info">
+                                            <i class="fas fa-phone me-1"></i>联系
+                                        </span>
+                                        {% elif behavior.behavior_type == 'search' %}
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-search me-1"></i>搜索
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-light text-dark">{{ behavior.behavior_type }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if behavior.item %}
+                                        <div>
+                                            <strong>{{ behavior.item.title }}</strong>
+                                            <br>
+                                            <small class="text-muted">商品ID: {{ behavior.item.id }}</small>
+                                        </div>
+                                        {% elif behavior.target_id %}
+                                        <small class="text-muted">ID: {{ behavior.target_id }}</small>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {% if behavior.duration %}
+                                            时长: {{ behavior.duration }}秒<br>
+                                            {% endif %}
+                                            {% if behavior.ip_address %}
+                                            IP: {{ behavior.ip_address }}<br>
+                                            {% endif %}
+                                            {% if behavior.user_agent %}
+                                            UA: {{ behavior.user_agent[:50] }}...
+                                            {% endif %}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ behavior.ip_address or '-' }}</small>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <strong>{{ behavior.created_at | beijing_time('%m-%d %H:%M') }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ behavior.created_at | beijing_date }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-info" 
+                                                    onclick="viewBehaviorDetail({{ behavior.id }})" 
+                                                    title="查看详情">
+                                                <i class="fas fa-info-circle"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger" 
+                                                    onclick="deleteBehavior({{ behavior.id }})" 
+                                                    title="删除记录">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">暂无行为数据</h5>
+                        <p class="text-muted">没有找到符合条件的行为记录</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分页 -->
+    {% if behaviors.pages > 1 %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <nav aria-label="行为数据分页">
+                <ul class="pagination justify-content-center">
+                    {% if behaviors.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.behaviors', page=behaviors.prev_num, type=current_type, days=current_days) }}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in behaviors.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != behaviors.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin.behaviors', page=page_num, type=current_type, days=current_days) }}">
+                                    {{ page_num }}
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if behaviors.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.behaviors', page=behaviors.next_num, type=current_type, days=current_days) }}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 行为详情模态框 -->
+<div class="modal fade" id="behaviorDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">行为详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="behaviorDetailContent">
+                <!-- 动态加载内容 -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewBehaviorDetail(behaviorId) {
+    // 这里可以添加查看行为详情的逻辑
+    // 暂时显示一个简单的提示
+    alert('行为详情功能待实现，行为ID: ' + behaviorId);
+}
+
+function deleteBehavior(behaviorId) {
+    if (confirm('确定要删除这条行为记录吗？\n\n注意：删除后无法恢复！')) {
+        fetch(`/admin/behaviors/${behaviorId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || '删除失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('删除失败，请重试');
+        });
+    }
+}
+</script>
+
+<style>
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+}
+</style>
+{% endblock %}

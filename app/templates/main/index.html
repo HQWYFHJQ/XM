@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - 校园跳蚤市场{% endblock %}
+
+{% block content %}
+<!-- 轮播图 -->
+<div id="heroCarousel" class="carousel slide" data-bs-ride="carousel" role="region" aria-label="特色展示轮播图">
+    <div class="carousel-indicators" role="tablist" aria-label="轮播图指示器">
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active" 
+                role="tab" aria-selected="true" aria-controls="carousel-item-0" aria-label="第1张幻灯片：平台介绍">
+        </button>
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1" 
+                role="tab" aria-selected="false" aria-controls="carousel-item-1" aria-label="第2张幻灯片：智能推荐">
+        </button>
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2" 
+                role="tab" aria-selected="false" aria-controls="carousel-item-2" aria-label="第3张幻灯片：绿色校园">
+        </button>
+    </div>
+    <div class="carousel-inner">
+        <div class="carousel-item active" id="carousel-item-0" role="tabpanel" aria-labelledby="carousel-indicator-0">
+            <div class="hero-section bg-primary text-white py-5">
+                <div class="container-fluid px-3 px-lg-5">
+                    <div class="row align-items-center">
+                        <div class="col-lg-6">
+                            <h1 class="display-4 fw-bold mb-4">校园跳蚤市场</h1>
+                            <p class="lead mb-4">智能推荐，精准匹配，让校园二手交易更便捷</p>
+                            <a href="{{ url_for('main.items') }}" class="btn btn-light btn-lg" 
+                               aria-label="开始浏览商品，进入商品列表页面">
+                                <i class="fas fa-shopping-bag me-2" aria-hidden="true"></i>开始购物
+                            </a>
+                        </div>
+                        <div class="col-lg-6" aria-hidden="true">
+                            <i class="fas fa-store fa-10x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="carousel-item" id="carousel-item-1" role="tabpanel" aria-labelledby="carousel-indicator-1">
+            <div class="hero-section bg-success text-white py-5">
+                <div class="container-fluid px-3 px-lg-5">
+                    <div class="row align-items-center">
+                        <div class="col-lg-6">
+                            <h1 class="display-4 fw-bold mb-4">智能推荐</h1>
+                            <p class="lead mb-4">基于AI算法的个性化推荐，发现你真正需要的商品</p>
+                            {% if current_user.is_authenticated %}
+                            <a href="{{ url_for('main.recommendations') }}" class="btn btn-light btn-lg" 
+                               aria-label="查看个性化推荐商品">
+                                <i class="fas fa-magic me-2" aria-hidden="true"></i>查看推荐
+                            </a>
+                            {% else %}
+                            <a href="{{ url_for('main.register') }}" class="btn btn-light btn-lg" 
+                               aria-label="立即注册账户，享受个性化推荐服务">
+                                <i class="fas fa-user-plus me-2" aria-hidden="true"></i>立即注册
+                            </a>
+                            {% endif %}
+                        </div>
+                        <div class="col-lg-6" aria-hidden="true">
+                            <i class="fas fa-brain fa-10x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="carousel-item" id="carousel-item-2" role="tabpanel" aria-labelledby="carousel-indicator-2">
+            <div class="hero-section bg-warning text-dark py-5">
+                <div class="container-fluid px-3 px-lg-5">
+                    <div class="row align-items-center">
+                        <div class="col-lg-6">
+                            <h1 class="display-4 fw-bold mb-4">绿色校园</h1>
+                            <p class="lead mb-4">资源循环利用，共建可持续发展的绿色校园</p>
+                            <a href="{{ url_for('main.create_item') }}" class="btn btn-dark btn-lg" 
+                               aria-label="发布新商品，参与绿色校园建设">
+                                <i class="fas fa-plus me-2" aria-hidden="true"></i>发布商品
+                            </a>
+                        </div>
+                        <div class="col-lg-6" aria-hidden="true">
+                            <i class="fas fa-leaf fa-10x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev" 
+            aria-label="上一张幻灯片">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next" 
+            aria-label="下一张幻灯片">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+    </button>
+</div>
+
+<div class="container-fluid px-3 px-lg-5 my-5">
+    <!-- 分类导航 -->
+    <section class="row mb-5" aria-labelledby="category-heading">
+        <div class="col-12">
+            <h2 id="category-heading" class="text-center mb-4">商品分类</h2>
+            <div class="row justify-content-center" role="list" aria-label="商品分类列表">
+                {% for category in parent_categories %}
+                <div class="col-xxl-2 col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-4" role="listitem">
+                    <a href="{{ url_for('main.items', parent_category=category.id) }}" class="text-decoration-none" 
+                       aria-label="浏览{{ category.name }}分类商品，包含{{ category.children|length }}个子分类">
+                        <div class="card h-100 text-center border-0 shadow-sm category-card">
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <div>
+                                    <i class="{{ category.icon or 'fas fa-tag' }} fa-3x text-primary mb-3" aria-hidden="true"></i>
+                                    <h5 class="card-title">{{ category.name }}</h5>
+                                    <p class="card-text text-muted small">{{ category.description[:50] }}...</p>
+                                </div>
+                                <div class="mt-auto">
+                                    <small class="text-muted">
+                                        <span class="visually-hidden">包含</span>
+                                        {% set child_count = category.children|length %}
+                                        {{ child_count }}个子分类
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- 推荐商品 -->
+    {% if current_user.is_authenticated and recommended_items %}
+    <section class="row mb-5" aria-labelledby="recommendations-heading">
+        <div class="col-12">
+            <h2 id="recommendations-heading" class="mb-4">
+                <i class="fas fa-magic text-primary me-2" aria-hidden="true"></i>为你推荐
+                <a href="{{ url_for('main.recommendations') }}" class="btn btn-outline-primary btn-sm float-end" 
+                   aria-label="查看更多推荐商品">
+                    查看更多 <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </a>
+            </h2>
+            <div class="row" role="list" aria-label="推荐商品列表">
+                {% for item in recommended_items %}
+                <div class="col-xxl-3 col-xl-4 col-lg-6 col-md-6 mb-4" role="listitem">
+                    <article class="card h-100 shadow-sm">
+                        {% if item.get_main_image() %}
+                        <img src="{{ url_for('static', filename='uploads/items/' + item.get_main_image()) }}" 
+                             class="card-img-top" alt="{{ item.title }}的商品图片" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;" 
+                             aria-label="暂无商品图片">
+                            <i class="fas fa-image fa-3x text-muted" aria-hidden="true"></i>
+                        </div>
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="card-title">{{ item.title }}</h6>
+                            <p class="card-text text-muted small flex-grow-1">{{ item.description[:50] }}...</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-primary fw-bold" aria-label="价格：{{ item.price }}元">¥{{ item.price }}</span>
+                                <small class="text-muted">
+                                    <i class="fas fa-eye me-1" aria-hidden="true"></i>
+                                    <span class="visually-hidden">浏览次数：</span>{{ item.view_count }}
+                                </small>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <a href="{{ url_for('main.item_detail', item_id=item.id) }}" class="btn btn-primary btn-sm w-100" 
+                               aria-label="查看{{ item.title }}的详细信息">
+                                查看详情
+                            </a>
+                        </div>
+                    </article>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- 热门商品 -->
+    <section class="row mb-5" aria-labelledby="popular-heading">
+        <div class="col-12">
+            <h2 id="popular-heading" class="mb-4">
+                <i class="fas fa-fire text-danger me-2" aria-hidden="true"></i>热门商品
+                <a href="{{ url_for('main.items', sort='popular') }}" class="btn btn-outline-primary btn-sm float-end" 
+                   aria-label="查看更多热门商品">
+                    查看更多 <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </a>
+            </h2>
+            <div class="row" role="list" aria-label="热门商品列表">
+                {% for item in popular_items %}
+                <div class="col-xxl-3 col-xl-4 col-lg-6 col-md-6 mb-4" role="listitem">
+                    <article class="card h-100 shadow-sm">
+                        {% if item.get_main_image() %}
+                        <img src="{{ url_for('static', filename='uploads/items/' + item.get_main_image()) }}" 
+                             class="card-img-top" alt="{{ item.title }}的商品图片" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;" 
+                             aria-label="暂无商品图片">
+                            <i class="fas fa-image fa-3x text-muted" aria-hidden="true"></i>
+                        </div>
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="card-title">{{ item.title }}</h6>
+                            <p class="card-text text-muted small flex-grow-1">{{ item.description[:50] }}...</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-primary fw-bold" aria-label="价格：{{ item.price }}元">¥{{ item.price }}</span>
+                                <small class="text-muted">
+                                    <i class="fas fa-eye me-1" aria-hidden="true"></i>
+                                    <span class="visually-hidden">浏览次数：</span>{{ item.view_count }}
+                                </small>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <a href="{{ url_for('main.item_detail', item_id=item.id) }}" class="btn btn-primary btn-sm w-100" 
+                               aria-label="查看{{ item.title }}的详细信息">
+                                查看详情
+                            </a>
+                        </div>
+                    </article>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- 最新商品 -->
+    <section class="row mb-5" aria-labelledby="latest-heading">
+        <div class="col-12">
+            <h2 id="latest-heading" class="mb-4">
+                <i class="fas fa-clock text-success me-2" aria-hidden="true"></i>最新商品
+                <a href="{{ url_for('main.items', sort='latest') }}" class="btn btn-outline-primary btn-sm float-end" 
+                   aria-label="查看更多最新商品">
+                    查看更多 <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </a>
+            </h2>
+            <div class="row" role="list" aria-label="最新商品列表">
+                {% for item in latest_items %}
+                <div class="col-xxl-3 col-xl-4 col-lg-6 col-md-6 mb-4" role="listitem">
+                    <article class="card h-100 shadow-sm">
+                        {% if item.get_main_image() %}
+                        <img src="{{ url_for('static', filename='uploads/items/' + item.get_main_image()) }}" 
+                             class="card-img-top" alt="{{ item.title }}的商品图片" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;" 
+                             aria-label="暂无商品图片">
+                            <i class="fas fa-image fa-3x text-muted" aria-hidden="true"></i>
+                        </div>
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="card-title">{{ item.title }}</h6>
+                            <p class="card-text text-muted small flex-grow-1">{{ item.description[:50] }}...</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-primary fw-bold" aria-label="价格：{{ item.price }}元">¥{{ item.price }}</span>
+                                <small class="text-muted">
+                                    <i class="fas fa-eye me-1" aria-hidden="true"></i>
+                                    <span class="visually-hidden">浏览次数：</span>{{ item.view_count }}
+                                </small>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <a href="{{ url_for('main.item_detail', item_id=item.id) }}" class="btn btn-primary btn-sm w-100" 
+                               aria-label="查看{{ item.title }}的详细信息">
+                                查看详情
+                            </a>
+                        </div>
+                    </article>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- 平台优势展示 -->
+<section class="py-5 bg-white" aria-labelledby="features-heading">
+    <div class="container-fluid px-3 px-lg-5">
+        <h2 id="features-heading" class="text-center mb-5">为什么选择我们</h2>
+        <div class="row" role="list" aria-label="平台特色功能">
+            <div class="col-xxl-3 col-xl-3 col-lg-6 col-md-6 mb-4" role="listitem">
+                <div class="text-center">
+                    <div class="feature-icon mb-3" aria-hidden="true">
+                        <i class="fas fa-shield-alt fa-3x text-primary"></i>
+                    </div>
+                    <h5 class="fw-bold">安全保障</h5>
+                    <p class="text-muted">实名认证，交易安全有保障</p>
+                </div>
+            </div>
+            <div class="col-xxl-3 col-xl-3 col-lg-6 col-md-6 mb-4" role="listitem">
+                <div class="text-center">
+                    <div class="feature-icon mb-3" aria-hidden="true">
+                        <i class="fas fa-brain fa-3x text-success"></i>
+                    </div>
+                    <h5 class="fw-bold">智能推荐</h5>
+                    <p class="text-muted">AI算法精准推荐，找到心仪商品</p>
+                </div>
+            </div>
+            <div class="col-xxl-3 col-xl-3 col-lg-6 col-md-6 mb-4" role="listitem">
+                <div class="text-center">
+                    <div class="feature-icon mb-3" aria-hidden="true">
+                        <i class="fas fa-shipping-fast fa-3x text-warning"></i>
+                    </div>
+                    <h5 class="fw-bold">快速交易</h5>
+                    <p class="text-muted">校园内快速配送，当天即可收货</p>
+                </div>
+            </div>
+            <div class="col-xxl-3 col-xl-3 col-lg-6 col-md-6 mb-4" role="listitem">
+                <div class="text-center">
+                    <div class="feature-icon mb-3" aria-hidden="true">
+                        <i class="fas fa-recycle fa-3x text-info"></i>
+                    </div>
+                    <h5 class="fw-bold">绿色环保</h5>
+                    <p class="text-muted">循环利用，共建绿色校园</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 平台数据统计 -->
+<section class="py-5 bg-primary text-white" aria-labelledby="stats-heading">
+    <div class="container-fluid px-3 px-lg-5">
+        <h2 id="stats-heading" class="visually-hidden">平台数据统计</h2>
+        <div class="row text-center" role="list" aria-label="平台统计数据">
+            <div class="col-xxl-3 col-xl-3 col-lg-6 col-md-6 mb-4" role="listitem">
+                <div class="stat-item">
+                    <i class="fas fa-users fa-3x mb-3" aria-hidden="true"></i>
+                    <h3 class="fw-bold" aria-label="注册用户数量：1200以上">1,200+</h3>
+                    <p class="mb-0">注册用户</p>
+                </div>
+            </div>
+            <div class="col-xxl-3 col-xl-3 col-lg-6 col-md-6 mb-4" role="listitem">
+                <div class="stat-item">
+                    <i class="fas fa-box fa-3x mb-3" aria-hidden="true"></i>
+                    <h3 class="fw-bold" aria-label="在售商品数量：3500以上">3,500+</h3>
+                    <p class="mb-0">在售商品</p>
+                </div>
+            </div>
+            <div class="col-xxl-3 col-xl-3 col-lg-6 col-md-6 mb-4" role="listitem">
+                <div class="stat-item">
+                    <i class="fas fa-handshake fa-3x mb-3" aria-hidden="true"></i>
+                    <h3 class="fw-bold" aria-label="成功交易数量：2800以上">2,800+</h3>
+                    <p class="mb-0">成功交易</p>
+                </div>
+            </div>
+            <div class="col-xxl-3 col-xl-3 col-lg-6 col-md-6 mb-4" role="listitem">
+                <div class="stat-item">
+                    <i class="fas fa-star fa-3x mb-3" aria-hidden="true"></i>
+                    <h3 class="fw-bold" aria-label="用户评分：4.8分">4.8</h3>
+                    <p class="mb-0">用户评分</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

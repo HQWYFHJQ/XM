@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}我的商品 - 校园跳蚤市场{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>
+            <i class="fas fa-box me-2"></i>我的商品
+        </h3>
+        <a href="{{ url_for('main.create_item') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>发布新商品
+        </a>
+    </div>
+    
+    <!-- 状态筛选 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('main.my_items', status='all') }}" 
+                   class="btn {% if current_status == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    全部 ({{ items.total }})
+                </a>
+                <a href="{{ url_for('main.my_items', status='active') }}" 
+                   class="btn {% if current_status == 'active' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    在售
+                </a>
+                <a href="{{ url_for('main.my_items', status='sold') }}" 
+                   class="btn {% if current_status == 'sold' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    已售
+                </a>
+                <a href="{{ url_for('main.my_items', status='inactive') }}" 
+                   class="btn {% if current_status == 'inactive' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    下架
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 商品列表 -->
+    {% if items.items %}
+    <div class="row">
+        {% for item in items.items %}
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100">
+                {% if item.get_main_image() %}
+                <img src="{{ url_for('static', filename='uploads/items/' + item.get_main_image()) }}" 
+                     class="card-img-top" alt="{{ item.title }}" style="height: 200px; object-fit: cover;">
+                {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                    <i class="fas fa-image fa-3x text-muted"></i>
+                </div>
+                {% endif %}
+                
+                <div class="card-body d-flex flex-column">
+                    <h6 class="card-title">{{ item.title }}</h6>
+                    <p class="card-text text-muted small flex-grow-1">{{ item.description[:60] }}...</p>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-primary fw-bold">¥{{ item.price }}</span>
+                        <span class="badge 
+                            {% if item.status == 'active' %}bg-success
+                            {% elif item.status == 'sold' %}bg-danger
+                            {% elif item.status == 'inactive' %}bg-secondary
+                            {% else %}bg-dark{% endif %}">
+                            {% if item.status == 'active' %}在售
+                            {% elif item.status == 'sold' %}已售
+                            {% elif item.status == 'inactive' %}下架
+                            {% else %}{{ item.status }}{% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center text-muted small">
+                        <span><i class="fas fa-eye me-1"></i>{{ item.view_count }} 浏览</span>
+                        <span><i class="fas fa-heart me-1"></i>{{ item.like_count }} 点赞</span>
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-transparent">
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('main.item_detail', item_id=item.id) }}" 
+                           class="btn btn-outline-primary btn-sm flex-grow-1">
+                            查看详情
+                        </a>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" 
+                                    type="button" data-bs-toggle="dropdown">
+                                操作
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('main.edit_my_item', item_id=item.id) }}">
+                                        <i class="fas fa-edit me-2"></i>编辑商品
+                                    </a>
+                                </li>
+                                {% if item.status == 'active' %}
+                                <li>
+                                    <a class="dropdown-item" href="#" onclick="markAsSold({{ item.id }})">
+                                        <i class="fas fa-check me-2"></i>标记为已售
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="#" onclick="deactivateItem({{ item.id }})">
+                                        <i class="fas fa-eye-slash me-2"></i>下架商品
+                                    </a>
+                                </li>
+                                {% elif item.status == 'sold' %}
+                                <li>
+                                    <a class="dropdown-item" href="#" onclick="reactivateItem({{ item.id }})">
+                                        <i class="fas fa-eye me-2"></i>重新上架
+                                    </a>
+                                </li>
+                                {% elif item.status == 'inactive' %}
+                                <li>
+                                    <a class="dropdown-item" href="#" onclick="reactivateItem({{ item.id }})">
+                                        <i class="fas fa-eye me-2"></i>重新上架
+                                    </a>
+                                </li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item text-danger" href="#" onclick="deleteItem({{ item.id }})">
+                                        <i class="fas fa-trash me-2"></i>删除商品
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- 分页 -->
+    {% if items.pages > 1 %}
+    <nav aria-label="商品分页">
+        <ul class="pagination justify-content-center">
+            {% if items.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('main.my_items', page=items.prev_num, status=current_status) }}">
+                    上一页
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for page_num in items.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num != items.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.my_items', page=page_num, status=current_status) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                    {% endif %}
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if items.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('main.my_items', page=items.next_num, status=current_status) }}">
+                    下一页
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    
+    {% else %}
+    <!-- 无商品时的提示 -->
+    <div class="text-center py-5">
+        <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">还没有发布任何商品</h5>
+        <p class="text-muted">发布你的第一个商品，开始校园二手交易之旅</p>
+        <a href="{{ url_for('main.create_item') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>发布商品
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function markAsSold(itemId) {
+    if (confirm('确定要将此商品标记为已售吗？')) {
+        updateItemStatus(itemId, 'sold');
+    }
+}
+
+function deactivateItem(itemId) {
+    if (confirm('确定要下架此商品吗？')) {
+        updateItemStatus(itemId, 'inactive');
+    }
+}
+
+function reactivateItem(itemId) {
+    if (confirm('确定要重新上架此商品吗？')) {
+        updateItemStatus(itemId, 'active');
+    }
+}
+
+function deleteItem(itemId) {
+    if (confirm('确定要删除此商品吗？此操作不可恢复！')) {
+        $.ajax({
+            url: `/api/items/${itemId}`,
+            method: 'DELETE',
+            success: function(response) {
+                if (response.success) {
+                    showAlert('商品删除成功', 'success');
+                    location.reload();
+                } else {
+                    showAlert(response.message || '删除失败', 'error');
+                }
+            },
+            error: function() {
+                showAlert('删除失败，请重试', 'error');
+            }
+        });
+    }
+}
+
+function updateItemStatus(itemId, status) {
+    $.ajax({
+        url: `/api/items/${itemId}/status`,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify({ status: status }),
+        success: function(response) {
+            if (response.success) {
+                showAlert(response.message, 'success');
+                location.reload();
+            } else {
+                showAlert(response.message || '操作失败', 'error');
+            }
+        },
+        error: function() {
+            showAlert('操作失败，请重试', 'error');
+        }
+    });
+}
+</script>
+{% endblock %}

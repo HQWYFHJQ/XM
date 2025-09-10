@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}管理后台 - 校园跳蚤市场智能推荐平台{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-tachometer-alt me-2"></i>管理后台
+            </h2>
+        </div>
+    </div>
+    
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ total_users }}</h4>
+                            <p class="card-text">总用户数</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ total_items }}</h4>
+                            <p class="card-text">总商品数</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-box fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ active_items }}</h4>
+                            <p class="card-text">在售商品</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-shopping-cart fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ total_transactions }}</h4>
+                            <p class="card-text">总交易数</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-exchange-alt fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 审核提醒 -->
+    {% if audit_stats and audit_stats.total_pending > 0 %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <h4 class="alert-heading">
+                    <i class="fas fa-exclamation-triangle me-2"></i>待审核提醒
+                </h4>
+                <p class="mb-2">您有 <strong>{{ audit_stats.total_pending }}</strong> 项内容等待审核：</p>
+                <ul class="mb-3">
+                    {% if audit_stats.pending_users > 0 %}
+                    <li><strong>{{ audit_stats.pending_users }}</strong> 个用户注册申请</li>
+                    {% endif %}
+                    {% if audit_stats.pending_items > 0 %}
+                    <li><strong>{{ audit_stats.pending_items }}</strong> 个商品发布申请</li>
+                    {% endif %}
+                </ul>
+                <div class="d-flex gap-2">
+                    {% if audit_stats.pending_users > 0 %}
+                    <a href="{{ url_for('admin.user_audits', status='pending') }}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-user-check me-1"></i>审核用户
+                    </a>
+                    {% endif %}
+                    {% if audit_stats.pending_items > 0 %}
+                    <a href="{{ url_for('admin.item_audits', status='pending') }}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-box me-1"></i>审核商品
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('admin.audits') }}" class="btn btn-outline-warning btn-sm">
+                        <i class="fas fa-tasks me-1"></i>审核管理
+                    </a>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 最近统计 -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">最近7天</h5>
+                    <div class="row">
+                        <div class="col-6">
+                            <p class="mb-1">新增用户</p>
+                            <h4 class="text-primary">{{ recent_users }}</h4>
+                        </div>
+                        <div class="col-6">
+                            <p class="mb-1">新增商品</p>
+                            <h4 class="text-success">{{ recent_items }}</h4>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <p class="mb-1">用户行为</p>
+                            <h4 class="text-info">{{ recent_behaviors }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">快速操作</h5>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{{ url_for('admin.audits') }}" class="btn btn-warning">
+                            <i class="fas fa-tasks me-2"></i>审核管理
+                            {% if audit_stats and audit_stats.total_pending > 0 %}
+                            <span class="badge bg-danger ms-1">{{ audit_stats.total_pending }}</span>
+                            {% endif %}
+                        </a>
+                        <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-users me-2"></i>用户管理
+                        </a>
+                        <a href="{{ url_for('admin.items') }}" class="btn btn-outline-success">
+                            <i class="fas fa-box me-2"></i>商品管理
+                        </a>
+                        <a href="{{ url_for('admin.categories') }}" class="btn btn-outline-info">
+                            <i class="fas fa-tags me-2"></i>分类管理
+                        </a>
+                        <a href="{{ url_for('admin.behaviors') }}" class="btn btn-outline-warning">
+                            <i class="fas fa-chart-line me-2"></i>行为分析
+                        </a>
+                        <a href="{{ url_for('data_viz.dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-chart-bar me-2"></i>数据可视化
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 热门商品和活跃用户 -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">热门商品</h5>
+                </div>
+                <div class="card-body">
+                    {% if popular_items %}
+                    <div class="list-group list-group-flush">
+                        {% for item in popular_items[:5] %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ item.title }}</h6>
+                                <small class="text-muted">¥{{ item.price }}</small>
+                            </div>
+                            <span class="badge bg-primary rounded-pill">{{ item.view_count }} 浏览</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">暂无数据</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">活跃用户</h5>
+                </div>
+                <div class="card-body">
+                    {% if active_users %}
+                    <div class="list-group list-group-flush">
+                        {% for user in active_users[:5] %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ user.username }}</h6>
+                                <small class="text-muted">{{ user.real_name or '未设置姓名' }}</small>
+                            </div>
+                            <span class="badge bg-success rounded-pill">活跃</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">暂无数据</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

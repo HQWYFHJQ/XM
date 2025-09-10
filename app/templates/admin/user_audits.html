@@ -1,0 +1,365 @@
+{% extends "admin/base.html" %}
+
+{% block title %}用户审核 - 管理后台{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <h4 class="page-title">用户审核管理</h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">首页</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.audits') }}">审核管理</a></li>
+                    <li class="breadcrumb-item active">用户审核</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选器 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h4 class="header-title">用户审核列表</h4>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-md-end">
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('admin.user_audits', status='pending') }}" 
+                                       class="btn {% if current_status == 'pending' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                        待审核
+                                    </a>
+                                    <a href="{{ url_for('admin.user_audits', status='approved') }}" 
+                                       class="btn {% if current_status == 'approved' %}btn-success{% else %}btn-outline-success{% endif %}">
+                                        已通过
+                                    </a>
+                                    <a href="{{ url_for('admin.user_audits', status='rejected') }}" 
+                                       class="btn {% if current_status == 'rejected' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                                        已拒绝
+                                    </a>
+                                    <a href="{{ url_for('admin.user_audits', status='all') }}" 
+                                       class="btn {% if current_status == 'all' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+                                        全部
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 审核列表 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-centered table-nowrap mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>用户信息</th>
+                                    <th>注册时间</th>
+                                    <th>审核状态</th>
+                                    <th>审核时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for audit in audits.items %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm bg-light rounded-circle me-3">
+                                                {% if audit.user.avatar and audit.user.avatar != 'None' and audit.user.avatar != '' and audit.user.avatar != 'null' %}
+                                                <img src="{{ url_for('static', filename='uploads/avatars/' + audit.user.avatar) }}" 
+                                                     alt="{{ audit.user.username }}" 
+                                                     class="avatar-sm rounded-circle"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                <span class="avatar-title bg-primary text-white rounded-circle" style="display: none;">
+                                                    {{ audit.user.username[0].upper() }}
+                                                </span>
+                                                {% else %}
+                                                <span class="avatar-title bg-primary text-white rounded-circle">
+                                                    {{ audit.user.username[0].upper() }}
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <h5 class="m-0 fw-normal">{{ audit.user.username }}</h5>
+                                                <p class="mb-0 text-muted">{{ audit.user.email }}</p>
+                                                <p class="mb-0 text-muted">
+                                                    <small>{{ audit.user.real_name or '未填写' }} | {{ audit.user.phone or '未填写' }}</small>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ audit.created_at.strftime('%Y-%m-%d %H:%M') if audit.created_at else '' }}</td>
+                                    <td>
+                                        {% if audit.status == 'pending' %}
+                                        <span class="badge bg-warning">待审核</span>
+                                        {% elif audit.status == 'approved' %}
+                                        <span class="badge bg-success">已通过</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">已拒绝</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if audit.reviewed_at %}
+                                        {{ audit.reviewed_at.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                        <span class="text-muted">未审核</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if audit.status == 'pending' %}
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-success btn-sm" 
+                                                    onclick="approveUser({{ audit.id }})">
+                                                <i class="mdi mdi-check"></i> 通过
+                                            </button>
+                                            <button type="button" class="btn btn-danger btn-sm" 
+                                                    onclick="rejectUser({{ audit.id }})">
+                                                <i class="mdi mdi-close"></i> 拒绝
+                                            </button>
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">已处理</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 分页 -->
+                    {% if audits.pages > 1 %}
+                    <div class="row">
+                        <div class="col-sm-12 col-md-5">
+                            <div class="dataTables_info">
+                                显示第 {{ audits.per_page * (audits.page - 1) + 1 }} 到 
+                                {{ audits.per_page * audits.page if audits.page < audits.pages else audits.total }} 条，
+                                共 {{ audits.total }} 条记录
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-7">
+                            <div class="dataTables_paginate paging_simple_numbers">
+                                <ul class="pagination pagination-rounded justify-content-end">
+                                    {% if audits.has_prev %}
+                                    <li class="paginate_button page-item previous">
+                                        <a href="{{ url_for('admin.user_audits', page=audits.prev_num, status=current_status) }}" 
+                                           class="page-link">上一页</a>
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% for page_num in audits.iter_pages() %}
+                                        {% if page_num %}
+                                            {% if page_num != audits.page %}
+                                            <li class="paginate_button page-item">
+                                                <a href="{{ url_for('admin.user_audits', page=page_num, status=current_status) }}" 
+                                                   class="page-link">{{ page_num }}</a>
+                                            </li>
+                                            {% else %}
+                                            <li class="paginate_button page-item active">
+                                                <span class="page-link">{{ page_num }}</span>
+                                            </li>
+                                            {% endif %}
+                                        {% else %}
+                                        <li class="paginate_button page-item disabled">
+                                            <span class="page-link">…</span>
+                                        </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if audits.has_next %}
+                                    <li class="paginate_button page-item next">
+                                        <a href="{{ url_for('admin.user_audits', page=audits.next_num, status=current_status) }}" 
+                                           class="page-link">下一页</a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 审核通过模态框 -->
+<div class="modal fade" id="approveModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">审核通过</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="approveForm">
+                    <div class="mb-3">
+                        <label for="adminNotes" class="form-label">管理员备注（可选）</label>
+                        <textarea class="form-control" id="adminNotes" name="admin_notes" rows="3" 
+                                  placeholder="请输入备注信息..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" onclick="submitApprove()">确认通过</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 审核拒绝模态框 -->
+<div class="modal fade" id="rejectModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">审核拒绝</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="rejectForm">
+                    <div class="mb-3">
+                        <label for="rejectionReason" class="form-label">拒绝原因 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="rejectionReason" name="rejection_reason" rows="3" 
+                                  placeholder="请详细说明拒绝原因..." required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="adminNotesReject" class="form-label">管理员备注（可选）</label>
+                        <textarea class="form-control" id="adminNotesReject" name="admin_notes" rows="3" 
+                                  placeholder="请输入备注信息..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" onclick="submitReject()">确认拒绝</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentAuditId = null;
+
+function approveUser(auditId) {
+    currentAuditId = auditId;
+    $('#approveModal').modal('show');
+}
+
+function rejectUser(auditId) {
+    currentAuditId = auditId;
+    $('#rejectModal').modal('show');
+}
+
+function submitApprove() {
+    const adminNotes = $('#adminNotes').val();
+    
+    $.ajax({
+        url: `/admin/audits/users/${currentAuditId}/approve`,
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            admin_notes: adminNotes
+        }),
+        success: function(response) {
+            if (response.success) {
+                showAlert('success', response.message);
+                $('#approveModal').modal('hide');
+                location.reload();
+            } else {
+                showAlert('error', response.message);
+            }
+        },
+        error: function() {
+            showAlert('error', '操作失败，请重试');
+        }
+    });
+}
+
+function submitReject() {
+    const rejectionReason = $('#rejectionReason').val();
+    const adminNotes = $('#adminNotesReject').val();
+    
+    if (!rejectionReason.trim()) {
+        showAlert('error', '请填写拒绝原因');
+        return;
+    }
+    
+    $.ajax({
+        url: `/admin/audits/users/${currentAuditId}/reject`,
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            rejection_reason: rejectionReason,
+            admin_notes: adminNotes
+        }),
+        success: function(response) {
+            if (response.success) {
+                showAlert('success', response.message);
+                $('#rejectModal').modal('hide');
+                location.reload();
+            } else {
+                showAlert('error', response.message);
+            }
+        },
+        error: function() {
+            showAlert('error', '操作失败，请重试');
+        }
+    });
+}
+
+function showAlert(type, message) {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    $('.container-fluid').prepend(alertHtml);
+    
+    // 3秒后自动隐藏
+    setTimeout(function() {
+        $('.alert').fadeOut();
+    }, 3000);
+}
+</script>
+
+<style>
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-sm img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.avatar-title {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}个人中心 - 校园跳蚤市场{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-md-4">
+            <!-- 用户信息卡片 -->
+            <div class="card">
+                <div class="card-body text-center">
+                    {% if current_user.avatar %}
+                    <img src="{{ url_for('static', filename='uploads/avatars/' + current_user.avatar) }}" 
+                         class="rounded-circle mb-3" width="120" height="120" alt="头像">
+                    {% else %}
+                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto mb-3" 
+                         style="width: 120px; height: 120px;">
+                        <i class="fas fa-user fa-3x text-muted"></i>
+                    </div>
+                    {% endif %}
+                    
+                    <h4>{{ current_user.username }}</h4>
+                    {% if current_user.real_name %}
+                    <p class="text-muted">{{ current_user.real_name }}</p>
+                    {% endif %}
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('main.edit_profile') }}" class="btn btn-primary">
+                            <i class="fas fa-edit me-2"></i>编辑资料
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 统计信息 -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">统计信息</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <h5 class="text-primary mb-1" id="itemsCount">-</h5>
+                                <small class="text-muted">发布商品</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-success mb-1" id="viewsCount">-</h5>
+                            <small class="text-muted">总浏览量</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <!-- 基本信息 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">基本信息</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">用户名</label>
+                            <div>{{ current_user.username }}</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">邮箱</label>
+                            <div>{{ current_user.email }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">真实姓名</label>
+                            <div>{{ current_user.real_name or '未设置' }}</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">学号</label>
+                            <div>{{ current_user.student_id or '未设置' }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">手机号</label>
+                            <div>{{ current_user.phone or '未设置' }}</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">注册时间</label>
+                            <div>{{ current_user.created_at | beijing_date if current_user.created_at else '未知' }}</div>
+                        </div>
+                    </div>
+                    
+                    {% if current_user.bio %}
+                    <div class="mb-3">
+                        <label class="form-label text-muted">个人简介</label>
+                        <div>{{ current_user.bio }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if current_user.get_interests_list() %}
+                    <div class="mb-3">
+                        <label class="form-label text-muted">兴趣标签</label>
+                        <div>
+                            {% for interest in current_user.get_interests_list() %}
+                            <span class="badge bg-light text-dark me-1">{{ interest }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 最近活动 -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">最近活动</h5>
+                </div>
+                <div class="card-body">
+                    <div id="recentActivity">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // 加载用户统计信息
+    loadUserStats();
+    
+    // 加载最近活动
+    loadRecentActivity();
+});
+
+function loadUserStats() {
+    $.ajax({
+        url: '/api/users/stats',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                $('#itemsCount').text(response.data.items_count || 0);
+                $('#viewsCount').text(response.data.total_views || 0);
+            }
+        },
+        error: function() {
+            console.error('加载统计信息失败');
+        }
+    });
+}
+
+function loadRecentActivity() {
+    $.ajax({
+        url: '/api/users/behaviors',
+        method: 'GET',
+        success: function(response) {
+            if (response.success && response.data.length > 0) {
+                let html = '';
+                response.data.forEach(function(behavior) {
+                    const time = new Date(behavior.created_at).toLocaleString();
+                    let action = '';
+                    switch(behavior.behavior_type) {
+                        case 'view':
+                            action = '浏览了商品';
+                            break;
+                        case 'like':
+                            action = '点赞了商品';
+                            break;
+                        case 'contact':
+                            action = '联系了卖家';
+                            break;
+                        default:
+                            action = '进行了操作';
+                    }
+                    
+                    html += `
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-circle text-primary me-2" style="font-size: 8px;"></i>
+                            <div class="flex-grow-1">
+                                <small>${action}</small>
+                            </div>
+                            <small class="text-muted">${time}</small>
+                        </div>
+                    `;
+                });
+                $('#recentActivity').html(html);
+            } else {
+                $('#recentActivity').html('<p class="text-muted text-center">暂无最近活动</p>');
+            }
+        },
+        error: function() {
+            $('#recentActivity').html('<p class="text-muted text-center">加载失败</p>');
+        }
+    });
+}
+</script>
+{% endblock %}

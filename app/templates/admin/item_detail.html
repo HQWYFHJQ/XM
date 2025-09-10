@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+
+{% block title %}商品详情 - 管理后台{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-box me-2"></i>商品详情管理
+                </h2>
+                <div>
+                    <a href="{{ url_for('admin.items') }}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-2"></i>返回商品列表
+                    </a>
+                    <a href="{{ url_for('admin.edit_item', item_id=item.id) }}" class="btn btn-primary me-2">
+                        <i class="fas fa-edit me-2"></i>编辑商品
+                    </a>
+                    <a href="{{ url_for('main.item_detail', item_id=item.id) }}" class="btn btn-outline-primary me-2" target="_blank">
+                        <i class="fas fa-eye me-2"></i>查看前台页面
+                    </a>
+                    <button type="button" class="btn btn-{% if item.status == 'active' %}warning{% else %}success{% endif %}" 
+                            onclick="toggleItemStatus({{ item.id }}, '{{ item.status }}')">
+                        <i class="fas fa-{% if item.status == 'active' %}eye-slash{% else %}eye{% endif %} me-2"></i>
+                        {% if item.status == 'active' %}下架商品{% else %}上架商品{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 商品基本信息 -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">商品基本信息</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h4 class="text-primary">{{ item.title }}</h4>
+                            <p class="text-muted mb-3">{{ item.description }}</p>
+                            
+                            <div class="row mb-3">
+                                <div class="col-sm-6">
+                                    <strong>商品ID:</strong> {{ item.id }}
+                                </div>
+                                <div class="col-sm-6">
+                                    <strong>状态:</strong>
+                                    {% if item.status == 'active' %}
+                                    <span class="badge bg-success">在售</span>
+                                    {% elif item.status == 'sold' %}
+                                    <span class="badge bg-warning">已售</span>
+                                    {% elif item.status == 'inactive' %}
+                                    <span class="badge bg-secondary">下架</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">已删除</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-sm-6">
+                                    <strong>价格:</strong> 
+                                    <span class="text-primary fw-bold">¥{{ item.price }}</span>
+                                    {% if item.original_price %}
+                                    <small class="text-muted">(原价: ¥{{ item.original_price }})</small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-sm-6">
+                                    <strong>成色:</strong>
+                                    {% if item.condition == 'new' %}
+                                    <span class="badge bg-success">全新</span>
+                                    {% elif item.condition == 'like_new' %}
+                                    <span class="badge bg-info">几乎全新</span>
+                                    {% elif item.condition == 'good' %}
+                                    <span class="badge bg-primary">良好</span>
+                                    {% elif item.condition == 'fair' %}
+                                    <span class="badge bg-warning">一般</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">较差</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-sm-6">
+                                    <strong>分类:</strong>
+                                    {% if item.category %}
+                                    <span class="badge bg-info">{{ item.category.name }}</span>
+                                    {% else %}
+                                    <span class="text-muted">未分类</span>
+                                    {% endif %}
+                                </div>
+                                <div class="col-sm-6">
+                                    <strong>位置:</strong>
+                                    {{ item.location or '未设置' }}
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-sm-6">
+                                    <strong>联系方式:</strong>
+                                    {% if item.contact_method == 'message' %}
+                                    <span class="badge bg-primary">站内消息</span>
+                                    {% elif item.contact_method == 'phone' %}
+                                    <span class="badge bg-success">电话</span>
+                                    {% elif item.contact_method == 'wechat' %}
+                                    <span class="badge bg-success">微信</span>
+                                    {% endif %}
+                                </div>
+                                <div class="col-sm-6">
+                                    <strong>联系信息:</strong>
+                                    {{ item.contact_info or '未设置' }}
+                                </div>
+                            </div>
+                            
+                            {% if item.get_tags_list() %}
+                            <div class="mb-3">
+                                <strong>标签:</strong>
+                                {% for tag in item.get_tags_list() %}
+                                <span class="badge bg-light text-dark me-1">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <strong>发布时间:</strong>
+                                    {{ item.created_at | beijing_datetime }}
+                                </div>
+                                <div class="col-sm-6">
+                                    <strong>更新时间:</strong>
+                                    {{ item.updated_at | beijing_datetime }}
+                                </div>
+                            </div>
+                            
+                            {% if item.sold_at %}
+                            <div class="row mt-2">
+                                <div class="col-sm-6">
+                                    <strong>售出时间:</strong>
+                                    {{ item.sold_at | beijing_datetime }}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4">
+                            {% if item.get_images_list() %}
+                            <div class="item-images">
+                                <h6 class="mb-3">商品图片</h6>
+                                <div class="row">
+                                    {% for image in item.get_images_list() %}
+                                    <div class="col-6 mb-2">
+                                        <img src="{{ url_for('static', filename='uploads/items/' + image) }}" alt="商品图片" class="img-fluid rounded" 
+                                             style="width: 100%; height: 100px; object-fit: cover; cursor: pointer;"
+                                             onclick="showImageModal('{{ url_for('static', filename='uploads/items/' + image) }}')">
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="text-center text-muted">
+                                <i class="fas fa-image fa-3x mb-3"></i>
+                                <p>暂无图片</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 卖家信息 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">卖家信息</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-circle bg-primary text-white me-3">
+                            {{ item.seller.username[0].upper() }}
+                        </div>
+                        <div>
+                            <h6 class="mb-1">
+                                <a href="{{ url_for('admin.user_detail', user_id=item.seller.id) }}" 
+                                   class="text-decoration-none">
+                                    {{ item.seller.username }}
+                                </a>
+                            </h6>
+                            <p class="text-muted mb-1">{{ item.seller.real_name or '未设置姓名' }}</p>
+                            <small class="text-muted">
+                                <i class="fas fa-envelope me-1"></i>{{ item.seller.email }}
+                                {% if item.seller.phone %}
+                                <i class="fas fa-phone ms-2 me-1"></i>{{ item.seller.phone }}
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 统计信息和相关商品 -->
+        <div class="col-md-4">
+            <!-- 商品统计 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">商品统计</h5>
+                </div>
+                <div class="card-body">
+                    {% if item_stats %}
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <div class="border-end">
+                                <h4 class="text-primary">{{ item_stats.get('total_views', 0) }}</h4>
+                                <small class="text-muted">总浏览量</small>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <h4 class="text-success">{{ item_stats.get('total_likes', 0) }}</h4>
+                            <small class="text-muted">总点赞数</small>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h5 class="text-info">{{ item_stats.get('recent_views', 0) }}</h5>
+                            <small class="text-muted">7天浏览</small>
+                        </div>
+                        <div class="col-4">
+                            <h5 class="text-warning">{{ item_stats.get('recent_likes', 0) }}</h5>
+                            <small class="text-muted">7天点赞</small>
+                        </div>
+                        <div class="col-4">
+                            <h5 class="text-danger">{{ item_stats.get('recent_contacts', 0) }}</h5>
+                            <small class="text-muted">7天联系</small>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h5 class="text-primary">{{ item.view_count or 0 }}</h5>
+                            <small class="text-muted">系统浏览量</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-success">{{ item.like_count or 0 }}</h5>
+                            <small class="text-muted">系统点赞数</small>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">暂无统计数据</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 相关商品 -->
+            {% if related_items %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">相关商品</h5>
+                </div>
+                <div class="card-body">
+                    {% for related_item in related_items %}
+                    <div class="d-flex align-items-center mb-3">
+                        {% if related_item.get_main_image() %}
+                        <img src="{{ related_item.get_main_image() }}" alt="{{ related_item.title }}" 
+                             class="me-3" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                        {% else %}
+                        <div class="bg-light d-flex align-items-center justify-content-center me-3" 
+                             style="width: 50px; height: 50px; border-radius: 4px;">
+                            <i class="fas fa-image text-muted"></i>
+                        </div>
+                        {% endif %}
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">
+                                <a href="{{ url_for('admin.item_detail', item_id=related_item.id) }}" 
+                                   class="text-decoration-none">
+                                    {{ related_item.title[:20] }}{% if related_item.title|length > 20 %}...{% endif %}
+                                </a>
+                            </h6>
+                            <p class="text-primary mb-0 fw-bold">¥{{ related_item.price }}</p>
+                            <small class="text-muted">{{ related_item.created_at | beijing_time('%m-%d') }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 图片查看模态框 -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageModalLabel">商品图片</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" src="" alt="商品图片" class="img-fluid">
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.item-images img:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
+    transition: all 0.3s ease;
+}
+</style>
+
+<script>
+function toggleItemStatus(itemId, currentStatus) {
+    const action = currentStatus === 'active' ? '下架' : '上架';
+    if (confirm(`确定要${action}该商品吗？`)) {
+        fetch(`/admin/items/${itemId}/toggle_status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || '操作失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('操作失败，请重试');
+        });
+    }
+}
+
+function showImageModal(imageSrc) {
+    document.getElementById('modalImage').src = imageSrc;
+    const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+    imageModal.show();
+}
+</script>
+{% endblock %}

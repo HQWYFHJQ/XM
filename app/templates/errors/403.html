@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}403 - 访问被拒绝{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <div class="py-5">
+                <i class="fas fa-ban fa-5x text-danger mb-4"></i>
+                <h1 class="display-1 fw-bold text-danger">403</h1>
+                <h2 class="mb-4">访问被拒绝</h2>
+                <p class="lead text-muted mb-4">
+                    抱歉，您没有权限访问此页面。
+                </p>
+                <a href="{{ url_for('main.index') }}" class="btn btn-primary">
+                    <i class="fas fa-home me-2"></i>返回首页
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

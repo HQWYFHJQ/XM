@@ -1,0 +1,511 @@
+{% extends "base.html" %}
+
+{% block title %}注册 - 校园跳蚤市场智能推荐平台{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0 mt-5">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
+                        <h3 class="fw-bold">用户注册</h3>
+                        <p class="text-muted">创建你的账户，开始校园二手交易之旅</p>
+                    </div>
+                    
+                    <form method="POST" id="registerForm">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="username" class="form-label fw-bold">用户名 *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-user"></i>
+                                    </span>
+                                    {{ form.username(class="form-control", placeholder="请输入用户名(6-12位)", required=true) }}
+                                </div>
+                                {% if form.username.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.username.errors %}
+                                            <div>{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="verification_code" class="form-label fw-bold">邮箱验证码 *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-shield-alt"></i>
+                                    </span>
+                                    {{ form.verification_code(class="form-control", placeholder="请输入6位验证码", required=true, maxlength="6") }}
+                                </div>
+                                {% if form.verification_code.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.verification_code.errors %}
+                                            <div>{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- 邮箱输入框 -->
+                        <div class="mb-3">
+                            <label for="email" class="form-label fw-bold">邮箱 *</label>
+                            <div class="input-group email-input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                                {{ form.email(class="form-control", id="email", placeholder="请输入邮箱", required=true) }}
+                                <button type="button" class="btn btn-outline-primary" id="sendCodeBtn" onclick="sendVerificationCode()" style="white-space: nowrap;">
+                                    发送验证码
+                                </button>
+                            </div>
+                            {% if form.email.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.email.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="real_name" class="form-label fw-bold">真实姓名</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-id-card"></i>
+                                    </span>
+                                    {{ form.real_name(class="form-control", placeholder="请输入真实姓名") }}
+                                </div>
+                                {% if form.real_name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.real_name.errors %}
+                                            <div>{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="student_id" class="form-label fw-bold">学号</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-graduation-cap"></i>
+                                    </span>
+                                    {{ form.student_id(class="form-control", placeholder="请输入学号(6-18位)") }}
+                                </div>
+                                {% if form.student_id.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.student_id.errors %}
+                                            <div>{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label fw-bold">手机号</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-phone"></i>
+                                    </span>
+                                    {{ form.phone(class="form-control", placeholder="请输入手机号") }}
+                                </div>
+                                {% if form.phone.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.phone.errors %}
+                                            <div>{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="password" class="form-label fw-bold">密码 *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-lock"></i>
+                                    </span>
+                                    {{ form.password(class="form-control", placeholder="请输入密码(8-16位，至少包含两种字符类型)", required=true) }}
+                                </div>
+                                {% if form.password.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.password.errors %}
+                                            <div>{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label fw-bold">确认密码 *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                {{ form.confirm_password(class="form-control", placeholder="请再次输入密码", required=true) }}
+                            </div>
+                            {% if form.confirm_password.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.confirm_password.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- 数学验证码 -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">人机验证 *</label>
+                            <div class="math-captcha-container">
+                                <div class="math-captcha">
+                                    <div class="math-question" id="mathQuestion">
+                                        <i class="fas fa-calculator me-2"></i>
+                                        <span id="questionText">正在生成题目...</span>
+                                    </div>
+                                    <div class="math-answer">
+                                        {{ form.math_answer(class="form-control", placeholder="请输入答案", required=true) }}
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshMathCaptcha()">
+                                        <i class="fas fa-refresh"></i> 刷新题目
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 协议勾选 -->
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="agreeTerms" name="agree_terms" required>
+                                <label class="form-check-label" for="agreeTerms">
+                                    我已阅读并同意 
+                                    <a href="{{ url_for('main.service_agreement') }}" target="_blank" class="text-primary text-decoration-none">服务协议</a>、
+                                    <a href="{{ url_for('main.privacy_policy') }}" target="_blank" class="text-primary text-decoration-none">隐私声明</a> 和 
+                                    <a href="{{ url_for('main.account_agreement') }}" target="_blank" class="text-primary text-decoration-none">账号协议</a>
+                                </label>
+                            </div>
+                            {% if form.agree_terms.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.agree_terms.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100 mb-3" id="submitBtn" disabled>
+                            <i class="fas fa-user-plus me-2"></i>注册
+                        </button>
+                    </form>
+                    
+                    <div class="text-center">
+                        <p class="mb-0">已有账户？ 
+                            <a href="{{ url_for('main.login') }}" class="text-primary text-decoration-none">
+                                立即登录
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.math-captcha-container {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+
+.math-captcha {
+    text-align: center;
+}
+
+.math-question {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #1976d2;
+    border: 2px solid #2196f3;
+}
+
+.math-answer {
+    max-width: 200px;
+    margin: 0 auto;
+}
+
+.math-answer .form-control {
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#sendCodeBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.input-group .form-control {
+    flex: 1;
+}
+
+/* 标签样式优化 */
+.form-label {
+    display: inline-block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #495057;
+    min-width: 140px;
+}
+
+/* 邮箱输入框和按钮布局优化 */
+#email {
+    flex: 1;
+    min-width: 300px;
+    max-width: 100%;
+    font-size: 14px;
+}
+
+#sendCodeBtn {
+    flex-shrink: 0;
+    min-width: 120px;
+    white-space: nowrap;
+    font-size: 14px;
+}
+
+/* 邮箱输入组优化 */
+.input-group {
+    width: 100%;
+    display: flex;
+}
+
+.input-group .form-control {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 确保邮箱输入框有足够空间显示长邮箱 */
+.email-input-group {
+    min-width: 500px;
+}
+
+@media (max-width: 768px) {
+    #email {
+        min-width: 200px;
+    }
+    
+    .email-input-group {
+        min-width: 100%;
+    }
+}
+</style>
+
+<script>
+let captchaData = null;
+let isMathVerified = false;
+let countdown = 0;
+let countdownTimer = null;
+
+// 页面加载时初始化数学验证码
+document.addEventListener('DOMContentLoaded', function() {
+    initMathCaptcha();
+    
+    // 添加协议勾选事件监听
+    const agreeTermsCheckbox = document.getElementById('agreeTerms');
+    if (agreeTermsCheckbox) {
+        agreeTermsCheckbox.addEventListener('change', checkFormValidity);
+    }
+});
+
+// 检查表单有效性
+function checkFormValidity() {
+    const mathAnswer = document.getElementById('math_answer');
+    const agreeTerms = document.getElementById('agreeTerms');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    if (mathAnswer && agreeTerms && submitBtn) {
+        const isMathValid = mathAnswer.value.trim() !== '';
+        const isTermsAgreed = agreeTerms.checked;
+        
+        submitBtn.disabled = !(isMathValid && isTermsAgreed);
+    }
+}
+
+// 初始化数学验证码
+function initMathCaptcha() {
+    fetch('/api/generate-captcha', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ type: 'math' })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            captchaData = data;
+            setupMathCaptcha(data);
+        } else {
+            showMessage('验证码生成失败: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('验证码生成失败', 'error');
+    });
+}
+
+// 设置数学验证码
+function setupMathCaptcha(data) {
+    const questionText = document.getElementById('questionText');
+    const mathAnswer = document.getElementById('math_answer');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // 重置状态
+    isMathVerified = false;
+    submitBtn.disabled = true;
+    mathAnswer.value = '';
+    
+    // 设置题目
+    questionText.textContent = data.question;
+    
+    // 设置隐藏字段
+    document.getElementById('captcha_id').value = data.captcha_id;
+    document.getElementById('captcha_type').value = 'math';
+    
+    // 添加输入事件监听
+    mathAnswer.addEventListener('input', function() {
+        checkFormValidity();
+    });
+}
+
+// 刷新数学验证码
+function refreshMathCaptcha() {
+    initMathCaptcha();
+    document.getElementById('submitBtn').disabled = true;
+}
+
+// 发送验证码
+function sendVerificationCode() {
+    const email = document.getElementById('email').value;
+    const sendBtn = document.getElementById('sendCodeBtn');
+    
+    if (!email) {
+        showMessage('请先输入邮箱地址', 'error');
+        return;
+    }
+    
+    // 验证邮箱格式
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) {
+        showMessage('请输入有效的邮箱地址', 'error');
+        return;
+    }
+    
+    // 禁用按钮并开始倒计时
+    sendBtn.disabled = true;
+    startCountdown();
+    
+    fetch('/api/send-verification-code', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            email: email,
+            type: 'register'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('验证码发送成功，请查收邮件', 'success');
+        } else {
+            showMessage('验证码发送失败: ' + data.message, 'error');
+            sendBtn.disabled = false;
+            clearCountdown();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('验证码发送失败', 'error');
+        sendBtn.disabled = false;
+        clearCountdown();
+    });
+}
+
+// 开始倒计时
+function startCountdown() {
+    countdown = 60;
+    const sendBtn = document.getElementById('sendCodeBtn');
+    
+    countdownTimer = setInterval(() => {
+        sendBtn.textContent = `重新发送(${countdown}s)`;
+        countdown--;
+        
+        if (countdown < 0) {
+            clearCountdown();
+        }
+    }, 1000);
+}
+
+// 清除倒计时
+function clearCountdown() {
+    if (countdownTimer) {
+        clearInterval(countdownTimer);
+        countdownTimer = null;
+    }
+    const sendBtn = document.getElementById('sendCodeBtn');
+    sendBtn.textContent = '发送验证码';
+    sendBtn.disabled = false;
+}
+
+// 显示消息
+function showMessage(message, type) {
+    // 创建消息元素
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `alert alert-${type === 'error' ? 'danger' : 'success'} alert-dismissible fade show`;
+    messageDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // 插入到表单顶部
+    const form = document.getElementById('registerForm');
+    form.insertBefore(messageDiv, form.firstChild);
+    
+    // 3秒后自动消失
+    setTimeout(() => {
+        if (messageDiv.parentNode) {
+            messageDiv.remove();
+        }
+    }, 3000);
+}
+
+// 表单提交验证
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+    const mathAnswer = document.getElementById('math_answer').value.trim();
+    if (!mathAnswer) {
+        e.preventDefault();
+        showMessage('请输入数学验证码答案', 'error');
+        return;
+    }
+});
+</script>
+{% endblock %}

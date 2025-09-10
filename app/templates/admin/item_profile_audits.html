@@ -1,0 +1,422 @@
+{% extends "admin/base.html" %}
+
+{% block title %}商品资料修改审核 - 管理后台{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <h4 class="page-title">商品资料修改审核</h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">首页</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.audits') }}">审核管理</a></li>
+                    <li class="breadcrumb-item active">商品资料修改审核</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选器 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h4 class="header-title">商品资料修改审核列表</h4>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-end">
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('admin.item_profile_audits', status='all') }}" 
+                                       class="btn {% if current_status == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                        全部 ({{ audits.total }})
+                                    </a>
+                                    <a href="{{ url_for('admin.item_profile_audits', status='pending') }}" 
+                                       class="btn {% if current_status == 'pending' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                                        待审核 ({{ audit_counts.pending_item_profiles }})
+                                    </a>
+                                    <a href="{{ url_for('admin.item_profile_audits', status='approved') }}" 
+                                       class="btn {% if current_status == 'approved' %}btn-success{% else %}btn-outline-success{% endif %}">
+                                        已通过
+                                    </a>
+                                    <a href="{{ url_for('admin.item_profile_audits', status='rejected') }}" 
+                                       class="btn {% if current_status == 'rejected' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                                        已拒绝
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 审核列表 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if audits.items %}
+                    <div class="table-responsive">
+                        <table class="table table-centered table-nowrap mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>商品信息</th>
+                                    <th>修改内容</th>
+                                    <th>状态</th>
+                                    <th>申请时间</th>
+                                    <th>审核时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for audit in audits.items %}
+                                <tr>
+                                    <td>{{ audit.id }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                {% if audit.item.images %}
+                                                {% set images = audit.item.get_images_list() %}
+                                                {% if images %}
+                                                <img src="{{ url_for('static', filename='uploads/items/' + images[0]) }}" 
+                                                     class="rounded" width="60" height="60" alt="商品图片">
+                                                {% else %}
+                                                <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                                     style="width: 60px; height: 60px;">
+                                                    <i class="mdi mdi-package-variant text-muted"></i>
+                                                </div>
+                                                {% endif %}
+                                                {% else %}
+                                                <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                                     style="width: 60px; height: 60px;">
+                                                    <i class="mdi mdi-package-variant text-muted"></i>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <h5 class="font-size-14 mb-1">{{ audit.item.title }}</h5>
+                                                <p class="text-muted mb-0">¥{{ audit.item.price }}</p>
+                                                <p class="text-muted mb-0">卖家: {{ audit.item.seller.username }}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-info" 
+                                                onclick="showChanges({{ audit.id }}, '{{ audit.old_data|e if audit.old_data else '{}' }}', '{{ audit.new_data|e if audit.new_data else '{}' }}')">
+                                            <i class="mdi mdi-eye"></i> 查看修改
+                                        </button>
+                                    </td>
+                                    <td>
+                                        {% if audit.status == 'pending' %}
+                                        <span class="badge bg-warning">待审核</span>
+                                        {% elif audit.status == 'approved' %}
+                                        <span class="badge bg-success">已通过</span>
+                                        {% elif audit.status == 'rejected' %}
+                                        <span class="badge bg-danger">已拒绝</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ audit.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        {% if audit.reviewed_at %}
+                                        {{ audit.reviewed_at.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if audit.status == 'pending' %}
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-success" 
+                                                    onclick="approveAudit({{ audit.id }})">
+                                                <i class="mdi mdi-check"></i> 通过
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" 
+                                                    onclick="rejectAudit({{ audit.id }})">
+                                                <i class="mdi mdi-close"></i> 拒绝
+                                            </button>
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">已处理</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 分页 -->
+                    {% if audits.pages > 1 %}
+                    <div class="row mt-3">
+                        <div class="col-sm-12 col-md-5">
+                            <div class="dataTables_info">
+                                显示第 {{ audits.per_page * (audits.page - 1) + 1 }} 到 {{ audits.per_page * audits.page if audits.page < audits.pages else audits.total }} 条，共 {{ audits.total }} 条记录
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-7">
+                            <div class="dataTables_paginate paging_simple_numbers">
+                                <ul class="pagination pagination-rounded justify-content-end">
+                                    {% if audits.has_prev %}
+                                    <li class="paginate_button page-item previous">
+                                        <a href="{{ url_for('admin.item_profile_audits', page=audits.prev_num, status=current_status) }}" 
+                                           class="page-link">上一页</a>
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% for page_num in audits.iter_pages() %}
+                                        {% if page_num %}
+                                            {% if page_num != audits.page %}
+                                            <li class="paginate_button page-item">
+                                                <a href="{{ url_for('admin.item_profile_audits', page=page_num, status=current_status) }}" 
+                                                   class="page-link">{{ page_num }}</a>
+                                            </li>
+                                            {% else %}
+                                            <li class="paginate_button page-item active">
+                                                <span class="page-link">{{ page_num }}</span>
+                                            </li>
+                                            {% endif %}
+                                        {% else %}
+                                        <li class="paginate_button page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if audits.has_next %}
+                                    <li class="paginate_button page-item next">
+                                        <a href="{{ url_for('admin.item_profile_audits', page=audits.next_num, status=current_status) }}" 
+                                           class="page-link">下一页</a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="mdi mdi-information-outline text-muted" style="font-size: 48px;"></i>
+                        <h5 class="mt-3">暂无审核记录</h5>
+                        <p class="text-muted">当前筛选条件下没有找到审核记录</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 修改内容对比模态框 -->
+<div class="modal fade" id="changesModal" tabindex="-1" aria-labelledby="changesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changesModalLabel">修改内容对比</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-danger">修改前</h6>
+                        <div id="oldData" class="border p-3 rounded" style="background-color: #fff5f5;"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success">修改后</h6>
+                        <div id="newData" class="border p-3 rounded" style="background-color: #f0fff4;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 审核通过模态框 -->
+<div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="approveModalLabel">审核通过</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="approveForm">
+                    <div class="mb-3">
+                        <label for="approveNotes" class="form-label">管理员备注（可选）</label>
+                        <textarea class="form-control" id="approveNotes" rows="3" 
+                                  placeholder="请输入审核备注..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" onclick="confirmApprove()">确认通过</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 审核拒绝模态框 -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rejectModalLabel">审核拒绝</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="rejectForm">
+                    <div class="mb-3">
+                        <label for="rejectReason" class="form-label">拒绝原因 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="rejectReason" rows="3" 
+                                  placeholder="请输入拒绝原因..." required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rejectNotes" class="form-label">管理员备注（可选）</label>
+                        <textarea class="form-control" id="rejectNotes" rows="3" 
+                                  placeholder="请输入审核备注..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" onclick="confirmReject()">确认拒绝</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentAuditId = null;
+
+function showChanges(auditId, oldData, newData) {
+    try {
+        const old = JSON.parse(oldData);
+        const new_ = JSON.parse(newData);
+        
+        let oldHtml = '<ul class="list-unstyled mb-0">';
+        let newHtml = '<ul class="list-unstyled mb-0">';
+        
+        for (const key in new_) {
+            if (old[key] !== new_[key]) {
+                oldHtml += `<li><strong>${getFieldName(key)}:</strong> ${formatValue(old[key])}</li>`;
+                newHtml += `<li><strong>${getFieldName(key)}:</strong> ${formatValue(new_[key])}</li>`;
+            }
+        }
+        
+        oldHtml += '</ul>';
+        newHtml += '</ul>';
+        
+        document.getElementById('oldData').innerHTML = oldHtml;
+        document.getElementById('newData').innerHTML = newHtml;
+        
+        new bootstrap.Modal(document.getElementById('changesModal')).show();
+    } catch (e) {
+        alert('数据解析失败');
+    }
+}
+
+function getFieldName(key) {
+    const fieldNames = {
+        'title': '商品名称',
+        'description': '商品描述',
+        'price': '价格',
+        'original_price': '原价',
+        'category_id': '分类',
+        'condition': '成色',
+        'location': '位置',
+        'contact_method': '联系方式',
+        'contact_info': '联系信息',
+        'tags': '标签',
+        'images': '图片'
+    };
+    return fieldNames[key] || key;
+}
+
+function formatValue(value) {
+    if (value === null || value === undefined) {
+        return '无';
+    }
+    if (Array.isArray(value)) {
+        return value.join(', ');
+    }
+    if (typeof value === 'object') {
+        return JSON.stringify(value);
+    }
+    return value;
+}
+
+function approveAudit(auditId) {
+    currentAuditId = auditId;
+    new bootstrap.Modal(document.getElementById('approveModal')).show();
+}
+
+function rejectAudit(auditId) {
+    currentAuditId = auditId;
+    new bootstrap.Modal(document.getElementById('rejectModal')).show();
+}
+
+function confirmApprove() {
+    const adminNotes = document.getElementById('approveNotes').value;
+    
+    fetch(`/admin/audits/item-profiles/${currentAuditId}/approve`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            admin_notes: adminNotes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('操作失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('操作失败');
+    });
+}
+
+function confirmReject() {
+    const rejectionReason = document.getElementById('rejectReason').value;
+    const adminNotes = document.getElementById('rejectNotes').value;
+    
+    if (!rejectionReason.trim()) {
+        alert('请填写拒绝原因');
+        return;
+    }
+    
+    fetch(`/admin/audits/item-profiles/${currentAuditId}/reject`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            rejection_reason: rejectionReason,
+            admin_notes: adminNotes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('操作失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('操作失败');
+    });
+}
+</script>
+{% endblock %}
