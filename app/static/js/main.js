@@ -397,8 +397,8 @@ const utils = {
 
 // Alert管理功能
 function initAlertAutoHide() {
-    // 为每个现有的alert设置自动隐藏
-    $('.alert:not(.alert-permanent)').each(function() {
+    // 为每个现有的alert设置自动隐藏（排除公告）
+    $('.alert:not(.alert-permanent):not(.announcement-item)').each(function() {
         const alert = $(this);
         if (!alert.data('auto-hide-set')) {
             alert.data('auto-hide-set', true);
@@ -418,7 +418,8 @@ function initAlertAutoHide() {
             mutation.addedNodes.forEach(function(node) {
                 if (node.nodeType === 1 && $(node).hasClass('alert')) {
                     const alert = $(node);
-                    if (!alert.hasClass('alert-permanent') && !alert.data('auto-hide-set')) {
+                    // 排除公告元素和永久alert
+                    if (!alert.hasClass('alert-permanent') && !alert.hasClass('announcement-item') && !alert.data('auto-hide-set')) {
                         alert.data('auto-hide-set', true);
                         setTimeout(() => {
                             if (alert.is(':visible')) {
@@ -440,9 +441,9 @@ function initAlertAutoHide() {
     });
 }
 
-// 手动隐藏所有alert
+// 手动隐藏所有alert（排除公告）
 function hideAllAlerts() {
-    $('.alert').fadeOut('slow', function() {
+    $('.alert:not(.announcement-item)').fadeOut('slow', function() {
         $(this).remove();
     });
 }

@@ -77,8 +77,12 @@ def create_app(config_name='default'):
     @app.context_processor
     def inject_announcements():
         from app.models import Announcement
-        # 获取当前有效的公告（最多显示5条）
-        announcements = Announcement.get_active_announcements_for_users(limit=5)
+        from flask_login import current_user
+        # 只有登录用户才能看到系统公告
+        if current_user.is_authenticated:
+            announcements = Announcement.get_active_announcements_for_users(limit=5)
+        else:
+            announcements = []
         return dict(announcements=announcements)
     
     # 添加时间格式化过滤器

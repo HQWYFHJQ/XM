@@ -249,7 +249,8 @@ class RecommendationService:
                     'view_count': item.view_count,
                     'created_at': item.created_at,
                     'score': pred.est,
-                    'reason': f'基于相似用户喜好推荐，预测评分: {pred.est:.2f}'
+                    'reason': f'基于相似用户喜好推荐，预测评分: {pred.est:.2f}',
+                    'main_image': item.get_main_image()
                 })
             
             # 按评分排序
@@ -334,7 +335,8 @@ class RecommendationService:
                         'view_count': item.view_count,
                         'created_at': item.created_at,
                         'score': similarity,
-                        'reason': f'基于商品特征相似度推荐，相似度: {similarity:.2f}'
+                        'reason': f'基于商品特征相似度推荐，相似度: {similarity:.2f}',
+                        'main_image': item.get_main_image()
                     })
         
         # 按相似度排序
@@ -371,7 +373,8 @@ class RecommendationService:
                 'view_count': item.view_count,
                 'created_at': item.created_at,
                 'score': total_score,
-                'reason': f'热门商品推荐，热度分数: {total_score:.2f}'
+                'reason': f'热门商品推荐，热度分数: {total_score:.2f}',
+                'main_image': item.get_main_image()
             })
         
         # 按热度分数排序

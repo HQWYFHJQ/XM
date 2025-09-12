@@ -184,7 +184,7 @@
     </nav>
 
     <!-- 系统公告 -->
-    {% if announcements %}
+    {% if announcements and current_user.is_authenticated %}
         <div class="container mt-3" role="alert" aria-live="polite" aria-atomic="true">
             {% for announcement in announcements %}
                 <div class="alert alert-{{ 'danger' if announcement.priority == 'urgent' else 'warning' if announcement.priority == 'high' else 'info' if announcement.type == 'notice' else 'primary' }} alert-dismissible fade show announcement-item" 
@@ -429,48 +429,138 @@
         window.currentUserId = {{ current_user.id if current_user.is_authenticated else 'null' }};
     </script>
     
-    <!-- 公告相关JavaScript -->
+    {% if announcements and current_user.is_authenticated %}
+    <!-- 公告相关CSS和JavaScript -->
+    <style>
+        /* 确保已读公告在页面加载时完全不显示 */
+        .announcement-item[data-read="true"] {
+            display: none !important;
+        }
+        
+        /* 为未读公告添加初始隐藏状态，避免闪烁 */
+        .announcement-item:not([data-read="true"]) {
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        
+        /* 已读公告的显示状态 */
+        .announcement-item[data-read="false"] {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+    {% endif %}
+    
+    {% if announcements and current_user.is_authenticated %}
     <script>
+        // 调试日志函数
+        function debugLog(message, data = null) {
+            const timestamp = new Date().toLocaleTimeString();
+            console.log(`[${timestamp}] 公告调试: ${message}`, data || '');
+        }
+        
         // 标记公告为已读
         function markAnnouncementAsRead(announcementId) {
+            debugLog(`开始标记公告 ${announcementId} 为已读`);
+            
             // 将公告ID存储到localStorage，表示用户已读
             const readAnnouncements = JSON.parse(localStorage.getItem('readAnnouncements') || '[]');
+            debugLog(`当前已读公告列表:`, readAnnouncements);
+            
             if (!readAnnouncements.includes(announcementId)) {
                 readAnnouncements.push(announcementId);
                 localStorage.setItem('readAnnouncements', JSON.stringify(readAnnouncements));
+                debugLog(`已将公告 ${announcementId} 添加到已读列表`);
+            } else {
+                debugLog(`公告 ${announcementId} 已在已读列表中`);
+            }
+            
+            // 找到对应的公告元素并隐藏
+            const announcementElement = document.querySelector(`[data-announcement-id="${announcementId}"]`);
+            debugLog(`查找公告元素:`, announcementElement);
+            
+            if (announcementElement) {
+                debugLog(`开始隐藏公告元素 ${announcementId}`);
+                // 添加淡出效果
+                announcementElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                announcementElement.style.opacity = '0';
+                announcementElement.style.transform = 'translateY(-10px)';
+                
+                // 延迟隐藏元素并标记为已读
+                setTimeout(function() {
+                    announcementElement.setAttribute('data-read', 'true');
+                    debugLog(`公告元素 ${announcementId} 已完全隐藏并标记为已读`);
+                }, 300);
+            } else {
+                debugLog(`警告: 未找到公告元素 ${announcementId}`);
             }
         }
         
-        // 页面加载时隐藏已读公告
+        // 页面加载时处理公告显示状态
         document.addEventListener('DOMContentLoaded', function() {
-            const readAnnouncements = JSON.parse(localStorage.getItem('readAnnouncements') || '[]');
-            const announcementItems = document.querySelectorAll('.announcement-item');
+            debugLog('DOM内容加载完成，开始处理公告');
             
-            announcementItems.forEach(function(item) {
+            const readAnnouncements = JSON.parse(localStorage.getItem('readAnnouncements') || '[]');
+            debugLog('从localStorage读取已读公告:', readAnnouncements);
+            
+            const announcementItems = document.querySelectorAll('.announcement-item');
+            debugLog(`找到 ${announcementItems.length} 个公告元素`);
+            
+            announcementItems.forEach(function(item, index) {
                 const announcementId = parseInt(item.getAttribute('data-announcement-id'));
+                debugLog(`处理公告 ${index + 1}: ID=${announcementId}, 元素=`, item);
+                
                 if (readAnnouncements.includes(announcementId)) {
-                    item.style.display = 'none';
+                    debugLog(`公告 ${announcementId} 已读，标记为已读状态`);
+                    // 使用CSS类控制，确保完全不显示
+                    item.setAttribute('data-read', 'true');
+                } else {
+                    debugLog(`公告 ${announcementId} 未读，标记为未读状态`);
+                    // 标记为未读，触发CSS显示动画
+                    item.setAttribute('data-read', 'false');
+                    
+                    // 延迟显示，创建淡入效果
+                    setTimeout(function() {
+                        debugLog(`开始显示公告 ${announcementId} 的淡入动画`);
+                        // CSS会自动处理动画效果
+                    }, 100);
                 }
+            });
+            
+            debugLog('公告处理完成');
+        });
+        
+        // 页面完全加载后的额外检查
+        window.addEventListener('load', function() {
+            debugLog('页面完全加载完成，进行最终检查');
+            
+            const announcementItems = document.querySelectorAll('.announcement-item');
+            announcementItems.forEach(function(item, index) {
+                const announcementId = parseInt(item.getAttribute('data-announcement-id'));
+                const isVisible = item.getAttribute('data-read') !== 'true' && item.offsetParent !== null;
+                const dataRead = item.getAttribute('data-read');
+                debugLog(`最终检查 - 公告 ${announcementId}: 可见=${isVisible}, data-read=${dataRead}, opacity=${item.style.opacity}`);
             });
         });
         
-        // 自动关闭非紧急公告（5秒后）
-        document.addEventListener('DOMContentLoaded', function() {
+        // 添加清除已读记录的功能（用于测试）
+        function clearReadAnnouncements() {
+            localStorage.removeItem('readAnnouncements');
+            debugLog('已清除所有已读公告记录，请刷新页面查看效果');
+            // 重新处理所有公告
             const announcementItems = document.querySelectorAll('.announcement-item');
-            
             announcementItems.forEach(function(item) {
-                const priority = item.querySelector('.badge').textContent.trim();
-                if (priority !== '紧急' && priority !== '高') {
-                    setTimeout(function() {
-                        if (item.style.display !== 'none') {
-                            item.style.transition = 'opacity 0.5s ease';
-                            item.style.opacity = '0.7';
-                        }
-                    }, 5000);
-                }
+                const announcementId = parseInt(item.getAttribute('data-announcement-id'));
+                item.setAttribute('data-read', 'false');
+                debugLog(`重新标记公告 ${announcementId} 为未读状态`);
             });
-        });
+        }
+        
+        // 在控制台暴露清除函数，方便调试
+        window.clearReadAnnouncements = clearReadAnnouncements;
     </script>
+    {% endif %}
     
     {% block extra_js %}{% endblock %}
     

@@ -140,8 +140,11 @@
                 {% for item in recommended_items %}
                 <div class="col-xxl-3 col-xl-4 col-lg-6 col-md-6 mb-4" role="listitem">
                     <article class="card h-100 shadow-sm">
-                        {% if item.get_main_image() %}
+                        {% if item.get_main_image is defined and item.get_main_image() %}
                         <img src="{{ url_for('static', filename='uploads/items/' + item.get_main_image()) }}" 
+                             class="card-img-top" alt="{{ item.title }}的商品图片" style="height: 200px; object-fit: cover;">
+                        {% elif item.main_image is defined and item.main_image %}
+                        <img src="{{ url_for('static', filename='uploads/items/' + item.main_image) }}" 
                              class="card-img-top" alt="{{ item.title }}的商品图片" style="height: 200px; object-fit: cover;">
                         {% else %}
                         <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;" 
@@ -188,8 +191,11 @@
                 {% for item in popular_items %}
                 <div class="col-xxl-3 col-xl-4 col-lg-6 col-md-6 mb-4" role="listitem">
                     <article class="card h-100 shadow-sm">
-                        {% if item.get_main_image() %}
+                        {% if item.get_main_image is defined and item.get_main_image() %}
                         <img src="{{ url_for('static', filename='uploads/items/' + item.get_main_image()) }}" 
+                             class="card-img-top" alt="{{ item.title }}的商品图片" style="height: 200px; object-fit: cover;">
+                        {% elif item.main_image is defined and item.main_image %}
+                        <img src="{{ url_for('static', filename='uploads/items/' + item.main_image) }}" 
                              class="card-img-top" alt="{{ item.title }}的商品图片" style="height: 200px; object-fit: cover;">
                         {% else %}
                         <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;" 
@@ -235,8 +241,11 @@
                 {% for item in latest_items %}
                 <div class="col-xxl-3 col-xl-4 col-lg-6 col-md-6 mb-4" role="listitem">
                     <article class="card h-100 shadow-sm">
-                        {% if item.get_main_image() %}
+                        {% if item.get_main_image is defined and item.get_main_image() %}
                         <img src="{{ url_for('static', filename='uploads/items/' + item.get_main_image()) }}" 
+                             class="card-img-top" alt="{{ item.title }}的商品图片" style="height: 200px; object-fit: cover;">
+                        {% elif item.main_image is defined and item.main_image %}
+                        <img src="{{ url_for('static', filename='uploads/items/' + item.main_image) }}" 
                              class="card-img-top" alt="{{ item.title }}的商品图片" style="height: 200px; object-fit: cover;">
                         {% else %}
                         <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;" 
