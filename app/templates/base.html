@@ -76,11 +76,19 @@
                         </a>
                     </li>
                     {% endif %}
+                    {% if current_user.is_authenticated %}
                     <li class="nav-item" role="none">
                             <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#aiRecommendModal" role="menuitem" aria-label="打开智能推荐助手">
                             <i class="fas fa-robot me-1" aria-hidden="true"></i>智能推荐
                         </a>
                     </li>
+                    {% else %}
+                    <li class="nav-item" role="none">
+                            <a class="nav-link" href="{{ url_for('main.login') }}" role="menuitem" aria-label="登录后使用智能推荐">
+                            <i class="fas fa-robot me-1" aria-hidden="true"></i>智能推荐
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
                 
                 <!-- 搜索框 -->
@@ -330,6 +338,7 @@
     <script src="{{ url_for('static', filename='js/ai_recommend.js') }}"></script>
 
     <!-- AI推荐模态框 -->
+    {% if current_user.is_authenticated %}
     <div class="modal fade" id="aiRecommendModal" tabindex="-1" aria-labelledby="aiRecommendModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content ai-chat-modal">
@@ -358,7 +367,7 @@
                         <!-- AI初始消息 -->
                         <div class="ai-message ai-message-ai">
                             <div class="ai-bubble ai-bubble-ai">
-                                您好！我是您的智能推荐助手。我可以根据您的浏览历史和偏好为您推荐合适的商品。您有什么想要了解的吗？
+                                基于Gemini模型推荐，编辑需求如："我想要一个固态硬盘，价格在200元到1000元之间，最好是全新的。"即可进行智能推荐。
                                 <div class="ai-message-time">刚刚</div>
                             </div>
                         </div>
@@ -377,6 +386,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <!-- 用户ID全局变量 -->
     <script>

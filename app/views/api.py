@@ -8,6 +8,8 @@ from app.services.item_service import ItemService
 from app.services.message_service import MessageService
 from datetime import datetime
 import json
+import requests
+from requests.auth import HTTPBasicAuth
 
 api_bp = Blueprint('api', __name__)
 
@@ -533,6 +535,88 @@ def verify_email_code():
     result = email_service.verify_code(email, code, code_type)
     
     return jsonify(result)
+
+@api_bp.route('/ai-recommend', methods=['POST'])
+@login_required
+def ai_recommend():
+    """智能推荐API - 调用N8N工作流"""
+    try:
+        data = request.get_json()
+        user_request = data.get('user_request', '').strip()
+        
+        if not user_request:
+            return jsonify({
+                'success': False,
+                'message': '请输入您的需求'
+            }), 400
+        
+        # N8N工作流配置
+        webhook_url = "https://n8n-moqjtstm.ap-northeast-1.clawcloudrun.com/webhook/6a0472a3-43cf-40de-ac00-2d0eaf73824b"
+        username = "zylxm"
+        password = '4mapg]zj2Am"]9(;'
+        
+        # 准备请求数据
+        request_data = {
+            "user_request": user_request
+        }
+        
+        # 设置请求头
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+        
+        # 发送请求到N8N工作流
+        response = requests.post(
+            url=webhook_url,
+            json=request_data,
+            headers=headers,
+            auth=HTTPBasicAuth(username, password),
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            try:
+                # 尝试解析JSON响应
+                response_data = response.json()
+                return jsonify({
+                    'success': True,
+                    'data': response_data
+                })
+            except json.JSONDecodeError:
+                # 如果不是JSON格式，返回文本响应
+                return jsonify({
+                    'success': True,
+                    'data': {
+                        'message': response.text
+                    }
+                })
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'推荐服务暂时不可用，状态码: {response.status_code}'
+            }), 500
+            
+    except requests.exceptions.Timeout:
+        return jsonify({
+            'success': False,
+            'message': '请求超时，请稍后重试'
+        }), 408
+    except requests.exceptions.ConnectionError:
+        return jsonify({
+            'success': False,
+            'message': '网络连接错误，请检查网络连接'
+        }), 503
+    except requests.exceptions.RequestException as e:
+        return jsonify({
+            'success': False,
+            'message': f'请求发生错误: {str(e)}'
+        }), 500
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'服务器内部错误: {str(e)}'
+        }), 500
 
 @api_bp.route('/generate-captcha', methods=['POST'])
 def generate_captcha():

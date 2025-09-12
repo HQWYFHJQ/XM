@@ -1,0 +1,245 @@
+{
+  "name": "校园跳蚤市场",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "6a0472a3-43cf-40de-ac00-2d0eaf73824b",
+        "authentication": "basicAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "56735bbc-b820-4e16-b043-acf9373b2f1b",
+      "name": "用户需求触发",
+      "webhookId": "6a0472a3-43cf-40de-ac00-2d0eaf73824b",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "unZaWOSJt9J9psBF",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=你是一个专业的数据库查询助手，需要根据用户的自然语言需求生成精确的MySQL查询语句。\n\n## 数据库信息\n- 数据库名：campus_market\n- 表名：items\n- 表结构：\n  - id (int, 主键)\n  - title (varchar(200), 商品标题) - 必填，需要模糊查询\n  - description (text, 商品描述)\n  - price (decimal(10,2), 价格) - 用于价格区间查询\n  - original_price (decimal(10,2), 原价)\n  - category_id (int, 分类ID)\n  - seller_id (int, 卖家ID)\n  - condition (enum: 'new','like_new','good','fair','poor', 成色) - 可选\n  - images (text, 图片)\n  - tags (text, 标签)\n  - location (varchar(200), 位置)\n  - contact_method (varchar(50), 联系方式)\n  - contact_info (varchar(200), 联系信息)\n  - status (enum: 'active','sold','inactive','deleted', 状态)\n  - audit_status (enum: 'pending','approved','rejected', 审核状态)\n  - view_count (int, 浏览次数)\n  - like_count (int, 点赞数)\n  - created_at (datetime, 创建时间)\n  - updated_at (datetime, 更新时间)\n  - sold_at (datetime, 售出时间)\n\n## 查询规则\n1. **商品标题**：必须包含，使用LIKE进行模糊查询，支持中文\n2. **价格区间**：如果用户提到价格范围，使用price字段进行BETWEEN查询\n3. **成色信息**：如果用户提到成色，映射到`condition`字段（注意使用反引号）\n4. **状态过滤**：只查询status='active'且audit_status='approved'的商品\n5. **排序**：按created_at DESC排序，最新发布的在前\n6. **保留关键字**：condition是MySQL保留字，必须用反引号包围\n\n## 成色映射规则\n- \"全新\"、\"新的\"、\"全新未使用\" → 'new'\n- \"几乎全新\"、\"九成新\"、\"很新\" → 'like_new'  \n- \"良好\"、\"八成新\"、\"七成新\" → 'good'\n- \"一般\"、\"六成新\"、\"五成新\" → 'fair'\n- \"较差\"、\"三成新\"、\"二成新\" → 'poor'\n\n## 价格区间处理\n- 提取用户提到的价格范围，如\"300元到700元\"、\"500以下\"、\"1000以上\"\n- 如果没有明确上限，使用999999作为上限\n- 如果没有明确下限，使用0作为下限\n\n## 输出格式\n只输出纯SQL查询语句，不要包含任何解释、markdown代码块标记（```sql 或 ```）或其他内容。\n必须包含LIMIT 5来限制结果数量，并且condition字段必须用反引号包围。\n直接输出SQL语句，例如：\nSELECT * FROM campus_market.items WHERE title LIKE '%固态硬盘%' AND `condition` = 'new' AND status = 'active' AND audit_status = 'approved' ORDER BY created_at DESC LIMIT 5;\n\n## 示例\n用户输入：\"我想要一个固态硬盘，价格在300元到700元之间，最好是全新的。\"\n输出：\nSELECT * FROM campus_market.items WHERE title LIKE '%固态硬盘%' AND price BETWEEN 300 AND 700 AND `condition` = 'new' AND status = 'active' AND audit_status = 'approved' ORDER BY created_at DESC LIMIT 5;\n\n现在请根据用户需求生成对应的SQL查询语句：{{ $json.user_request }}\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "81002410-806c-4378-9d2c-04a4e59155d9",
+      "name": "生成SQL查询语句",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "QY3ZMYxxbp4nXXIt",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// N8N Code节点 - 提取user_request字段\n// 从webhook输出中提取user_request字段的内容\n\n// 获取输入数据\nconst inputData = $input.all();\n\n// 处理每个输入项\nconst outputData = inputData.map(item => {\n  // 从webhook数据中提取body部分的user_request字段\n  const userRequest = item.json.body.user_request;\n  \n  // 返回提取的用户请求内容\n  return {\n    json: {\n      user_request: userRequest\n    }\n  };\n});\n\n// 返回处理后的数据\nreturn outputData;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "d6436708-5b3b-4c89-b0f0-e142133a209c",
+      "name": "提取用户需求"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "USE campus_market; \n{{ $json.content.parts[0].text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        768,
+        0
+      ],
+      "id": "4dffee4b-78f7-47c8-98bf-99ea6098bee8",
+      "name": "查询MySql数据库中满足需求的商品",
+      "credentials": {
+        "mySql": {
+          "id": "b3rFKLThg0lFrjuf",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 获取所有输入数据\nconst allInputs = $input.all();\n\n// 检查输入数据结构\nif (allInputs && allInputs.length > 0) {\n  // 提取所有记录的目标字段\n  const extractedData = allInputs.map(input => {\n    const item = input.json;\n    return {\n      商品ID: item.id,\n      商品名称: item.title,\n      商品描述: item.description,\n      交易地点: item.location,\n      商品发布时间: item.created_at\n    };\n  });\n  \n  // 检查是否有有效的商品数据（不是空对象）\n  const validProducts = extractedData.filter(product => \n    product.商品ID && product.商品名称 && product.商品描述\n  );\n  \n  if (validProducts.length === 0) {\n    return {\n      json: {\n        message: \"没有找到符合要求的商品\",\n        符合要求的商品数量: 0\n      }\n    };\n  }\n  \n  return {\n    json: {\n      message: `用户有二手电子产品购买需求，经检索现在有 ${validProducts.length} 个满足用户需求的商品，具体信息如下:`,\n      商品详情: validProducts,\n      符合要求的商品数量: validProducts.length\n    }\n  };\n} else {\n  return {\n    json: {\n      message: \"没有找到符合要求的商品\",\n      符合要求的商品数量: 0\n    }\n  };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        0
+      ],
+      "id": "52ef6c83-57c5-4c47-aa65-99033462b64d",
+      "name": "格式化Sql查询输出"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.message }}\n商品详情：\n{{ $json[\"商品详情\"].map(item => `商品ID: ${item.商品ID}\n商品名称: ${item.商品名称}\n商品描述: ${item.商品描述}\n交易地点: ${item.交易地点}\n发布时间: ${item.商品发布时间}`).join('\\n\\n') }}\n\n请根据以上商品信息，为用户生成一个有吸引力的推荐理由。参考以下方向：\n突出优点和价值：提炼商品的核心卖点，强调其能为用户带来的好处。\n明确目标用户：分析商品的特性，指出适合哪些用户群体购买。\n结合时间优势：利用北京时间与商品发布时间的对比，制造“新品”或“抢先”的紧迫感。\n简洁清晰：语言精炼，逻辑清晰，易于理解。\n激发购买兴趣：运用有吸引力的措辞，引导用户产生购买欲望。\n用第一人称的口吻，可以适当使用适合的emogi表情，例如：\n您好！很高兴能为您推荐以下两款商品：\n1. 梵想（FANXIANG）512GB SSD固态硬盘\n为什么推荐您？ 这款固态硬盘简直是升级电脑的完美选择！✨ 它的M.2接口和NVMe协议，加上PCIe 4.0x4的高速读写，能让您的电脑飞速运转，无论是大型文件传输还是日常使用，都能感受到质的飞跃。而且，它刚于2025年09月10日06:19:32上架，可以说是非常新的好物，价格仅为299.00元，性价比超高！更棒的是，它满足了您对全新商品的需求，还有海量存储的特性，非常适合需要提升电脑性能的学生党和办公族。\n2. 铠侠（Kioxia）2TB SSD固态硬盘\n为什么推荐您？ 如果您对存储空间有更高要求，那么这款2TB的铠侠SSD绝对是您的不二之选！🚀 它采用了NVMe M.2接口和PCIe 5.0*4，读速高达10000MB/s，并且发热量低，运行非常稳定。正如用户评价所说，“东芝原装颗粒还是非常值得冲的”。这款商品也是刚发布不久，相信能给您带来极佳的使用体验。特别适合需要存储大量文件、视频或进行专业创作的用户。\n希望这两款商品能满足您的需求！如果您想了解更多信息，随时都可以告诉我哦！😊\n注意：如果没有符合要求的商品，则参考以下回复：\n很抱歉，目前没有找到符合您需求的商品。😔不过别担心！您可以尝试：\n- 调整搜索条件，比如扩大价格范围或商品类型\n- 稍后再来看看，可能会有新的商品上架\n- 告诉我更具体的需求，我可以帮您重新搜索\n我会持续关注，一旦有合适的商品出现，会第一时间为您推荐！"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        1152,
+        0
+      ],
+      "id": "6a26df08-e06f-4ff6-af0f-e779b939dd58",
+      "name": "Gemini输出推荐内容",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "QY3ZMYxxbp4nXXIt",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1504,
+        0
+      ],
+      "id": "a4c45ba3-07bf-4406-9ed3-a05ea288b0d3",
+      "name": "返回Gemini推荐内容"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "用户需求触发": {
+      "main": [
+        [
+          {
+            "node": "提取用户需求",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "提取用户需求": {
+      "main": [
+        [
+          {
+            "node": "生成SQL查询语句",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "生成SQL查询语句": {
+      "main": [
+        [
+          {
+            "node": "查询MySql数据库中满足需求的商品",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "查询MySql数据库中满足需求的商品": {
+      "main": [
+        [
+          {
+            "node": "格式化Sql查询输出",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "格式化Sql查询输出": {
+      "main": [
+        [
+          {
+            "node": "Gemini输出推荐内容",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini输出推荐内容": {
+      "main": [
+        [
+          {
+            "node": "返回Gemini推荐内容",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "77b83e2b-0ec6-4444-8985-a57aca919bd4",
+  "meta": {
+    "instanceId": "2abdb5eff00f21077b9f31c6588d11c748ad065a44235bf673224fb3870143b2"
+  },
+  "id": "c4HpQXMsQdrsCOxJ",
+  "tags": [
+    {
+      "createdAt": "2025-09-09T13:56:44.399Z",
+      "updatedAt": "2025-09-09T13:56:44.399Z",
+      "id": "9tc0SdLIHYqythRn",
+      "name": "优化版"
+    },
+    {
+      "createdAt": "2025-09-09T13:56:44.416Z",
+      "updatedAt": "2025-09-09T13:56:44.416Z",
+      "id": "Zl3INsIU7zR2u7qE",
+      "name": "校园市场"
+    }
+  ]
+}
