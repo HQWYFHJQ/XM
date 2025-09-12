@@ -74,6 +74,13 @@ def create_app(config_name='default'):
         parent_categories = Category.query.filter_by(parent_id=None, is_active=True).order_by(Category.sort_order).all()
         return dict(parent_categories=parent_categories)
     
+    @app.context_processor
+    def inject_announcements():
+        from app.models import Announcement
+        # 获取当前有效的公告（最多显示5条）
+        announcements = Announcement.get_active_announcements_for_users(limit=5)
+        return dict(announcements=announcements)
+    
     # 添加时间格式化过滤器
     @app.template_filter('beijing_time')
     def beijing_time_filter(dt, format_str='%Y-%m-%d %H:%M:%S'):

@@ -672,3 +672,20 @@ def privacy_policy():
 def account_agreement():
     """账号协议页面"""
     return render_template('main/account_agreement.html')
+
+@main_bp.route('/announcements')
+def announcements():
+    """系统公告页面"""
+    from app.models import Announcement
+    
+    page = request.args.get('page', 1, type=int)
+    
+    # 获取历史公告（分页）
+    history_announcements = Announcement.query.order_by(
+        Announcement.created_at.desc()
+    ).paginate(
+        page=page, per_page=10, error_out=False
+    )
+    
+    return render_template('main/announcements.html',
+                         history_announcements=history_announcements)

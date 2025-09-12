@@ -69,6 +69,11 @@
                             <i class="fas fa-plus me-1" aria-hidden="true"></i>发布
                         </a>
                     </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link" href="{{ url_for('main.announcements') }}" role="menuitem" aria-label="查看系统公告">
+                            <i class="fas fa-bullhorn me-1" aria-hidden="true"></i>公告
+                        </a>
+                    </li>
                     {% if current_user.is_authenticated %}
                     <li class="nav-item" role="none">
                         <a class="nav-link" href="{{ url_for('main.recommendations') }}" role="menuitem" aria-label="查看个性化推荐商品">
@@ -177,6 +182,37 @@
             </div>
         </div>
     </nav>
+
+    <!-- 系统公告 -->
+    {% if announcements %}
+        <div class="container mt-3" role="alert" aria-live="polite" aria-atomic="true">
+            {% for announcement in announcements %}
+                <div class="alert alert-{{ 'danger' if announcement.priority == 'urgent' else 'warning' if announcement.priority == 'high' else 'info' if announcement.type == 'notice' else 'primary' }} alert-dismissible fade show announcement-item" 
+                     role="alert" aria-live="assertive" data-announcement-id="{{ announcement.id }}">
+                    <div class="d-flex align-items-start">
+                        <i class="{{ announcement.get_type_icon() }} me-2 mt-1" aria-hidden="true"></i>
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center mb-1">
+                                <h6 class="mb-0 me-2">{{ announcement.title }}</h6>
+                                {% if announcement.is_pinned %}
+                                    <i class="fas fa-thumbtack text-warning" title="置顶公告" aria-label="置顶公告"></i>
+                                {% endif %}
+                                <span class="badge bg-{{ 'danger' if announcement.priority == 'urgent' else 'warning' if announcement.priority == 'high' else 'primary' }} ms-2">
+                                    {{ '紧急' if announcement.priority == 'urgent' else '高' if announcement.priority == 'high' else '普通' if announcement.priority == 'normal' else '低' }}
+                                </span>
+                            </div>
+                            <div class="announcement-content">{{ announcement.render_content() | safe }}</div>
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1" aria-hidden="true"></i>
+                                {{ announcement.created_at | beijing_datetime }}
+                            </small>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="关闭此公告" onclick="markAnnouncementAsRead({{ announcement.id }})"></button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
 
     <!-- 消息提示 -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -393,7 +429,135 @@
         window.currentUserId = {{ current_user.id if current_user.is_authenticated else 'null' }};
     </script>
     
+    <!-- 公告相关JavaScript -->
+    <script>
+        // 标记公告为已读
+        function markAnnouncementAsRead(announcementId) {
+            // 将公告ID存储到localStorage，表示用户已读
+            const readAnnouncements = JSON.parse(localStorage.getItem('readAnnouncements') || '[]');
+            if (!readAnnouncements.includes(announcementId)) {
+                readAnnouncements.push(announcementId);
+                localStorage.setItem('readAnnouncements', JSON.stringify(readAnnouncements));
+            }
+        }
+        
+        // 页面加载时隐藏已读公告
+        document.addEventListener('DOMContentLoaded', function() {
+            const readAnnouncements = JSON.parse(localStorage.getItem('readAnnouncements') || '[]');
+            const announcementItems = document.querySelectorAll('.announcement-item');
+            
+            announcementItems.forEach(function(item) {
+                const announcementId = parseInt(item.getAttribute('data-announcement-id'));
+                if (readAnnouncements.includes(announcementId)) {
+                    item.style.display = 'none';
+                }
+            });
+        });
+        
+        // 自动关闭非紧急公告（5秒后）
+        document.addEventListener('DOMContentLoaded', function() {
+            const announcementItems = document.querySelectorAll('.announcement-item');
+            
+            announcementItems.forEach(function(item) {
+                const priority = item.querySelector('.badge').textContent.trim();
+                if (priority !== '紧急' && priority !== '高') {
+                    setTimeout(function() {
+                        if (item.style.display !== 'none') {
+                            item.style.transition = 'opacity 0.5s ease';
+                            item.style.opacity = '0.7';
+                        }
+                    }, 5000);
+                }
+            });
+        });
+    </script>
     
     {% block extra_js %}{% endblock %}
+    
+    <style>
+    /* Markdown样式 */
+    .announcement-content h1,
+    .announcement-content h2,
+    .announcement-content h3,
+    .announcement-content h4,
+    .announcement-content h5,
+    .announcement-content h6 {
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+
+    .announcement-content h1 { font-size: 1.5rem; }
+    .announcement-content h2 { font-size: 1.3rem; }
+    .announcement-content h3 { font-size: 1.1rem; }
+
+    .announcement-content p {
+        margin-bottom: 1rem;
+    }
+
+    .announcement-content ul,
+    .announcement-content ol {
+        margin-bottom: 1rem;
+        padding-left: 2rem;
+    }
+
+    .announcement-content blockquote {
+        border-left: 4px solid #dee2e6;
+        padding-left: 1rem;
+        margin: 1rem 0;
+        color: #6c757d;
+        background-color: #f8f9fa;
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+    }
+
+    .announcement-content code {
+        background-color: #f8f9fa;
+        padding: 0.2rem 0.4rem;
+        border-radius: 0.25rem;
+        font-size: 0.875em;
+        color: #e83e8c;
+    }
+
+    .announcement-content pre {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        overflow-x: auto;
+        border: 1px solid #dee2e6;
+    }
+
+    .announcement-content pre code {
+        background-color: transparent;
+        padding: 0;
+        color: inherit;
+    }
+
+    .announcement-content table {
+        width: 100%;
+        margin-bottom: 1rem;
+        border-collapse: collapse;
+    }
+
+    .announcement-content table th,
+    .announcement-content table td {
+        padding: 0.5rem;
+        border: 1px solid #dee2e6;
+    }
+
+    .announcement-content table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+
+    .announcement-content a {
+        color: #0d6efd;
+        text-decoration: none;
+    }
+
+    .announcement-content a:hover {
+        text-decoration: underline;
+    }
+    </style>
 </body>
 </html>

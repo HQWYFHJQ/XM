@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import login_required, current_user
 from app import db
-from app.models import User, Item, Category, UserBehavior, Recommendation, Transaction, UserAudit, ItemAudit, UserProfileAudit, ItemProfileAudit, UserAvatarAudit, ItemImageAudit, Conversation, Message, MessageNotification
+from app.models import User, Item, Category, UserBehavior, Recommendation, Transaction, UserAudit, ItemAudit, UserProfileAudit, ItemProfileAudit, UserAvatarAudit, ItemImageAudit, Conversation, Message, MessageNotification, Announcement
 from app.services.recommendation_service import RecommendationService
 from app.services.user_service import UserService
 from app.services.item_service import ItemService
@@ -70,6 +70,11 @@ def dashboard():
     audit_service = AuditService()
     audit_stats = audit_service.get_audit_stats()
     
+    # 公告统计
+    total_announcements = Announcement.query.count()
+    active_announcements = Announcement.query.filter_by(is_active=True).count()
+    recent_announcements = Announcement.query.filter(Announcement.created_at >= seven_days_ago).count()
+    
     return render_template('admin/dashboard.html',
                          total_users=total_users,
                          total_items=total_items,
@@ -84,7 +89,10 @@ def dashboard():
                          price_distribution=price_distribution,
                          recommendation_stats=recommendation_stats,
                          audit_stats=audit_stats,
-                         audit_counts=audit_stats)
+                         audit_counts=audit_stats,
+                         total_announcements=total_announcements,
+                         active_announcements=active_announcements,
+                         recent_announcements=recent_announcements)
 
 @admin_bp.route('/users')
 @login_required
@@ -1294,3 +1302,266 @@ def audit_item_image():
         return jsonify({'success': False, 'message': '操作参数无效'})
     
     return jsonify(result)
+
+# ==================== 公告管理相关路由 ====================
+
+@admin_bp.route('/announcements')
+@login_required
+@admin_required
+def announcements():
+    """公告管理"""
+    from app.services.announcement_service import AnnouncementService
+    
+    page = request.args.get('page', 1, type=int)
+    status = request.args.get('status', 'all')
+    announcement_type = request.args.get('type', 'all')
+    priority = request.args.get('priority', 'all')
+    search = request.args.get('search', '')
+    
+    announcement_service = AnnouncementService()
+    announcements = announcement_service.get_announcements(
+        page=page, per_page=20, status=status, 
+        announcement_type=announcement_type, priority=priority, search=search
+    )
+    
+    return render_template('admin/announcements.html',
+                         announcements=announcements,
+                         current_status=status,
+                         current_type=announcement_type,
+                         current_priority=priority,
+                         current_search=search,
+                         audit_counts=get_audit_counts())
+
+@admin_bp.route('/announcements/preview', methods=['POST'])
+@login_required
+@admin_required
+def preview_announcement():
+    """预览Markdown内容"""
+    try:
+        data = request.get_json()
+        content = data.get('content', '').strip()
+        
+        if not content:
+            return jsonify({'success': False, 'error': '内容不能为空'})
+        
+        # 创建临时公告对象进行渲染
+        from app.models.announcement import Announcement
+        temp_announcement = Announcement()
+        temp_announcement.content = content
+        
+        html_content = temp_announcement.render_content()
+        
+        return jsonify({
+            'success': True,
+            'html': html_content
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@admin_bp.route('/announcements/create', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def create_announcement():
+    """创建公告"""
+    from app.services.announcement_service import AnnouncementService
+    
+    if request.method == 'POST':
+        try:
+            title = request.form.get('title', '').strip()
+            content = request.form.get('content', '').strip()
+            announcement_type = request.form.get('type', 'system')
+            priority = request.form.get('priority', 'normal')
+            is_pinned = bool(request.form.get('is_pinned'))
+            
+            # 处理时间
+            start_time_str = request.form.get('start_time')
+            end_time_str = request.form.get('end_time')
+            
+            start_time = None
+            end_time = None
+            
+            if start_time_str:
+                try:
+                    start_time = datetime.strptime(start_time_str, '%Y-%m-%dT%H:%M')
+                except ValueError:
+                    flash('开始时间格式错误！', 'error')
+                    return render_template('admin/create_announcement.html',
+                                         audit_counts=get_audit_counts())
+            
+            if end_time_str:
+                try:
+                    end_time = datetime.strptime(end_time_str, '%Y-%m-%dT%H:%M')
+                except ValueError:
+                    flash('结束时间格式错误！', 'error')
+                    return render_template('admin/create_announcement.html',
+                                         audit_counts=get_audit_counts())
+            
+            # 验证时间逻辑
+            if start_time and end_time and start_time >= end_time:
+                flash('开始时间必须早于结束时间！', 'error')
+                return render_template('admin/create_announcement.html',
+                                     audit_counts=get_audit_counts())
+            
+            if not title:
+                flash('公告标题不能为空！', 'error')
+                return render_template('admin/create_announcement.html',
+                                     audit_counts=get_audit_counts())
+            
+            if not content:
+                flash('公告内容不能为空！', 'error')
+                return render_template('admin/create_announcement.html',
+                                     audit_counts=get_audit_counts())
+            
+            announcement_service = AnnouncementService()
+            result = announcement_service.create_announcement(
+                title=title,
+                content=content,
+                announcement_type=announcement_type,
+                priority=priority,
+                is_pinned=is_pinned,
+                start_time=start_time,
+                end_time=end_time,
+                created_by=current_user.id
+            )
+            
+            if result['success']:
+                flash('公告创建成功！', 'success')
+                return redirect(url_for('admin.announcements'))
+            else:
+                flash(f'创建失败：{result["message"]}', 'error')
+        
+        except Exception as e:
+            flash(f'创建失败：{str(e)}', 'error')
+    
+    return render_template('admin/create_announcement.html',
+                         audit_counts=get_audit_counts())
+
+@admin_bp.route('/announcements/<int:announcement_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_announcement(announcement_id):
+    """编辑公告"""
+    from app.services.announcement_service import AnnouncementService
+    
+    announcement = Announcement.query.get_or_404(announcement_id)
+    announcement_service = AnnouncementService()
+    
+    if request.method == 'POST':
+        try:
+            title = request.form.get('title', '').strip()
+            content = request.form.get('content', '').strip()
+            announcement_type = request.form.get('type', 'system')
+            priority = request.form.get('priority', 'normal')
+            is_pinned = bool(request.form.get('is_pinned'))
+            is_active = bool(request.form.get('is_active'))
+            
+            # 处理时间
+            start_time_str = request.form.get('start_time')
+            end_time_str = request.form.get('end_time')
+            
+            start_time = None
+            end_time = None
+            
+            if start_time_str:
+                try:
+                    start_time = datetime.strptime(start_time_str, '%Y-%m-%dT%H:%M')
+                except ValueError:
+                    flash('开始时间格式错误！', 'error')
+                    return redirect(url_for('admin.edit_announcement', announcement_id=announcement_id))
+            
+            if end_time_str:
+                try:
+                    end_time = datetime.strptime(end_time_str, '%Y-%m-%dT%H:%M')
+                except ValueError:
+                    flash('结束时间格式错误！', 'error')
+                    return redirect(url_for('admin.edit_announcement', announcement_id=announcement_id))
+            
+            # 验证时间逻辑
+            if start_time and end_time and start_time >= end_time:
+                flash('开始时间必须早于结束时间！', 'error')
+                return redirect(url_for('admin.edit_announcement', announcement_id=announcement_id))
+            
+            if not title:
+                flash('公告标题不能为空！', 'error')
+                return redirect(url_for('admin.edit_announcement', announcement_id=announcement_id))
+            
+            if not content:
+                flash('公告内容不能为空！', 'error')
+                return redirect(url_for('admin.edit_announcement', announcement_id=announcement_id))
+            
+            result = announcement_service.update_announcement(
+                announcement_id,
+                title=title,
+                content=content,
+                type=announcement_type,
+                priority=priority,
+                is_pinned=is_pinned,
+                is_active=is_active,
+                start_time=start_time,
+                end_time=end_time
+            )
+            
+            if result['success']:
+                flash('公告更新成功！', 'success')
+                return redirect(url_for('admin.announcements'))
+            else:
+                flash(f'更新失败：{result["message"]}', 'error')
+        
+        except Exception as e:
+            flash(f'更新失败：{str(e)}', 'error')
+    
+    return render_template('admin/edit_announcement.html',
+                         announcement=announcement,
+                         audit_counts=get_audit_counts())
+
+@admin_bp.route('/announcements/<int:announcement_id>/toggle_status', methods=['POST'])
+@login_required
+@admin_required
+def toggle_announcement_status(announcement_id):
+    """切换公告状态"""
+    from app.services.announcement_service import AnnouncementService
+    
+    announcement_service = AnnouncementService()
+    result = announcement_service.toggle_announcement_status(announcement_id)
+    
+    return jsonify(result)
+
+@admin_bp.route('/announcements/<int:announcement_id>/toggle_pin', methods=['POST'])
+@login_required
+@admin_required
+def toggle_announcement_pin(announcement_id):
+    """切换公告置顶状态"""
+    from app.services.announcement_service import AnnouncementService
+    
+    announcement_service = AnnouncementService()
+    result = announcement_service.toggle_pin_status(announcement_id)
+    
+    return jsonify(result)
+
+@admin_bp.route('/announcements/<int:announcement_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_announcement(announcement_id):
+    """删除公告"""
+    from app.services.announcement_service import AnnouncementService
+    
+    announcement_service = AnnouncementService()
+    result = announcement_service.delete_announcement(announcement_id)
+    
+    return jsonify(result)
+
+@admin_bp.route('/announcements/stats')
+@login_required
+@admin_required
+def announcement_stats():
+    """公告统计"""
+    from app.services.announcement_service import AnnouncementService
+    
+    announcement_service = AnnouncementService()
+    stats = announcement_service.get_announcement_stats()
+    recent_announcements = announcement_service.get_recent_announcements(days=7, limit=10)
+    
+    return render_template('admin/announcement_stats.html',
+                         stats=stats,
+                         recent_announcements=recent_announcements,
+                         audit_counts=get_audit_counts())

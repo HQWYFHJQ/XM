@@ -14,7 +14,7 @@
     
     <!-- 统计卡片 -->
     <div class="row mb-4">
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -29,7 +29,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -44,7 +44,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card bg-info text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -59,7 +59,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card bg-warning text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -69,6 +69,36 @@
                         </div>
                         <div class="align-self-center">
                             <i class="fas fa-exchange-alt fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ total_announcements }}</h4>
+                            <p class="card-text">总公告数</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-bullhorn fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ active_announcements }}</h4>
+                            <p class="card-text">活跃公告</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-bell fa-2x"></i>
                         </div>
                     </div>
                 </div>
@@ -121,13 +151,17 @@
                 <div class="card-body">
                     <h5 class="card-title">最近7天</h5>
                     <div class="row">
-                        <div class="col-6">
+                        <div class="col-4">
                             <p class="mb-1">新增用户</p>
                             <h4 class="text-primary">{{ recent_users }}</h4>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
                             <p class="mb-1">新增商品</p>
                             <h4 class="text-success">{{ recent_items }}</h4>
+                        </div>
+                        <div class="col-4">
+                            <p class="mb-1">新增公告</p>
+                            <h4 class="text-danger">{{ recent_announcements }}</h4>
                         </div>
                     </div>
                     <div class="row">
@@ -161,6 +195,9 @@
                         </a>
                         <a href="{{ url_for('admin.behaviors') }}" class="btn btn-outline-warning">
                             <i class="fas fa-chart-line me-2"></i>行为分析
+                        </a>
+                        <a href="{{ url_for('admin.announcements') }}" class="btn btn-outline-danger">
+                            <i class="fas fa-bullhorn me-2"></i>公告管理
                         </a>
                         <a href="{{ url_for('data_viz.dashboard') }}" class="btn btn-outline-secondary">
                             <i class="fas fa-chart-bar me-2"></i>数据可视化

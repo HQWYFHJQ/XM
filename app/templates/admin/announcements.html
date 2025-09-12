@@ -1,0 +1,296 @@
+{% extends "admin/base.html" %}
+
+{% block title %}公告管理 - 管理后台{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-bullhorn me-2"></i>公告管理</h2>
+    <a href="{{ url_for('admin.create_announcement') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>发布公告
+    </a>
+</div>
+
+<!-- 筛选和搜索 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label for="status" class="form-label">状态</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="all" {% if current_status == 'all' %}selected{% endif %}>全部</option>
+                    <option value="active" {% if current_status == 'active' %}selected{% endif %}>启用</option>
+                    <option value="inactive" {% if current_status == 'inactive' %}selected{% endif %}>禁用</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="type" class="form-label">类型</label>
+                <select name="type" id="type" class="form-select">
+                    <option value="all" {% if current_type == 'all' %}selected{% endif %}>全部</option>
+                    <option value="system" {% if current_type == 'system' %}selected{% endif %}>系统公告</option>
+                    <option value="maintenance" {% if current_type == 'maintenance' %}selected{% endif %}>维护通知</option>
+                    <option value="notice" {% if current_type == 'notice' %}selected{% endif %}>重要通知</option>
+                    <option value="warning" {% if current_type == 'warning' %}selected{% endif %}>警告</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="priority" class="form-label">优先级</label>
+                <select name="priority" id="priority" class="form-select">
+                    <option value="all" {% if current_priority == 'all' %}selected{% endif %}>全部</option>
+                    <option value="low" {% if current_priority == 'low' %}selected{% endif %}>低</option>
+                    <option value="normal" {% if current_priority == 'normal' %}selected{% endif %}>普通</option>
+                    <option value="high" {% if current_priority == 'high' %}selected{% endif %}>高</option>
+                    <option value="urgent" {% if current_priority == 'urgent' %}selected{% endif %}>紧急</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="search" class="form-label">搜索</label>
+                <input type="text" name="search" id="search" class="form-control" 
+                       placeholder="搜索标题或内容" value="{{ current_search }}">
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fas fa-search me-2"></i>筛选
+                </button>
+                <a href="{{ url_for('admin.announcements') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i>重置
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 公告列表 -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">公告列表 (共 {{ announcements.total }} 条)</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if announcements.items %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="5%">ID</th>
+                            <th width="25%">标题</th>
+                            <th width="10%">类型</th>
+                            <th width="10%">优先级</th>
+                            <th width="10%">状态</th>
+                            <th width="10%">置顶</th>
+                            <th width="15%">创建时间</th>
+                            <th width="15%">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for announcement in announcements.items %}
+                        <tr>
+                            <td>{{ announcement.id }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if announcement.is_pinned %}
+                                        <i class="fas fa-thumbtack text-warning me-2" title="置顶"></i>
+                                    {% endif %}
+                                    <div>
+                                        <div class="fw-bold">{{ announcement.title }}</div>
+                                        <small class="text-muted">
+                                            {{ announcement.get_content_preview(50) }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'primary' if announcement.type == 'system' else 'info' if announcement.type == 'notice' else 'warning' if announcement.type == 'maintenance' else 'danger' }}">
+                                    <i class="{{ announcement.get_type_icon() }} me-1"></i>
+                                    {{ '系统' if announcement.type == 'system' else '通知' if announcement.type == 'notice' else '维护' if announcement.type == 'maintenance' else '警告' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="{{ announcement.get_priority_class() }}">
+                                    <i class="fas fa-{{ 'arrow-down' if announcement.priority == 'low' else 'minus' if announcement.priority == 'normal' else 'arrow-up' if announcement.priority == 'high' else 'exclamation-triangle' }} me-1"></i>
+                                    {{ '低' if announcement.priority == 'low' else '普通' if announcement.priority == 'normal' else '高' if announcement.priority == 'high' else '紧急' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if announcement.is_active else 'secondary' }}">
+                                    {{ '启用' if announcement.is_active else '禁用' }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if announcement.is_pinned %}
+                                    <i class="fas fa-thumbtack text-warning" title="已置顶"></i>
+                                {% else %}
+                                    <i class="fas fa-minus text-muted"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div>{{ announcement.created_at | beijing_datetime }}</div>
+                                <small class="text-muted">by {{ announcement.creator.username }}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('admin.edit_announcement', announcement_id=announcement.id) }}" 
+                                       class="btn btn-outline-primary" title="编辑">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-{{ 'success' if not announcement.is_active else 'warning' }}" 
+                                            onclick="toggleStatus({{ announcement.id }})" title="{{ '启用' if not announcement.is_active else '禁用' }}">
+                                        <i class="fas fa-{{ 'play' if not announcement.is_active else 'pause' }}"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-{{ 'warning' if not announcement.is_pinned else 'info' }}" 
+                                            onclick="togglePin({{ announcement.id }})" title="{{ '置顶' if not announcement.is_pinned else '取消置顶' }}">
+                                        <i class="fas fa-thumbtack"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" 
+                                            onclick="deleteAnnouncement({{ announcement.id }})" title="删除">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 分页 -->
+            {% if announcements.pages > 1 %}
+            <div class="card-footer">
+                <nav aria-label="公告分页">
+                    <ul class="pagination pagination-sm justify-content-center mb-0">
+                        {% if announcements.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin.announcements', page=announcements.prev_num, status=current_status, type=current_type, priority=current_priority, search=current_search) }}">上一页</a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for page_num in announcements.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != announcements.page %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('admin.announcements', page=page_num, status=current_status, type=current_type, priority=current_priority, search=current_search) }}">{{ page_num }}</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                {% endif %}
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if announcements.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin.announcements', page=announcements.next_num, status=current_status, type=current_type, priority=current_priority, search=current_search) }}">下一页</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-bullhorn fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">暂无公告</h5>
+                <p class="text-muted">点击上方"发布公告"按钮创建第一个公告</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleStatus(announcementId) {
+    if (confirm('确定要切换公告状态吗？')) {
+        fetch(`/admin/announcements/${announcementId}/toggle_status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showAlert('操作失败', 'error');
+        });
+    }
+}
+
+function togglePin(announcementId) {
+    if (confirm('确定要切换置顶状态吗？')) {
+        fetch(`/admin/announcements/${announcementId}/toggle_pin`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showAlert('操作失败', 'error');
+        });
+    }
+}
+
+function deleteAnnouncement(announcementId) {
+    if (confirm('确定要删除这个公告吗？此操作不可恢复！')) {
+        fetch(`/admin/announcements/${announcementId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showAlert('删除失败', 'error');
+        });
+    }
+}
+
+function showAlert(message, type) {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    // 在页面顶部插入提示
+    const container = document.querySelector('.p-4');
+    container.insertAdjacentHTML('afterbegin', alertHtml);
+    
+    // 3秒后自动消失
+    setTimeout(() => {
+        const alert = container.querySelector('.alert');
+        if (alert) {
+            alert.remove();
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

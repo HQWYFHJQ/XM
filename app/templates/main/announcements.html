@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}系统公告 - 校园跳蚤市场{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- 页面标题 -->
+            <div class="text-center mb-5">
+                <h1 class="display-6 fw-bold text-primary">
+                    <i class="fas fa-bullhorn me-3"></i>系统公告
+                </h1>
+                <p class="lead text-muted">了解最新的系统通知和重要信息</p>
+            </div>
+            
+            <!-- 当前有效公告 -->
+            {% if announcements %}
+                <div class="mb-5">
+                    <h3 class="h5 fw-bold mb-3">
+                        <i class="fas fa-star text-warning me-2"></i>当前公告
+                    </h3>
+                    {% for announcement in announcements %}
+                        <div class="card mb-3 announcement-card border-{{ 'danger' if announcement.priority == 'urgent' else 'warning' if announcement.priority == 'high' else 'primary' }}">
+                            <div class="card-header bg-{{ 'danger' if announcement.priority == 'urgent' else 'warning' if announcement.priority == 'high' else 'primary' }} text-white">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <i class="{{ announcement.get_type_icon() }} me-2"></i>
+                                        <h5 class="mb-0">{{ announcement.title }}</h5>
+                                        {% if announcement.is_pinned %}
+                                            <i class="fas fa-thumbtack text-warning ms-2" title="置顶公告"></i>
+                                        {% endif %}
+                                    </div>
+                                    <span class="badge bg-light text-dark">
+                                        {{ '紧急' if announcement.priority == 'urgent' else '高' if announcement.priority == 'high' else '普通' if announcement.priority == 'normal' else '低' }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="announcement-content">{{ announcement.render_content() | safe }}</div>
+                                <hr>
+                                <div class="d-flex justify-content-between align-items-center text-muted">
+                                    <small>
+                                        <i class="fas fa-user me-1"></i>
+                                        发布者：{{ announcement.creator.username }}
+                                    </small>
+                                    <small>
+                                        <i class="fas fa-clock me-1"></i>
+                                        {{ announcement.created_at | beijing_datetime }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <!-- 历史公告 -->
+            <div class="mb-4">
+                <h3 class="h5 fw-bold mb-3">
+                    <i class="fas fa-history text-secondary me-2"></i>历史公告
+                </h3>
+                
+                {% if history_announcements %}
+                    {% for announcement in history_announcements %}
+                        <div class="card mb-3 announcement-card border-secondary">
+                            <div class="card-header bg-light">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <i class="{{ announcement.get_type_icon() }} me-2 text-secondary"></i>
+                                        <h6 class="mb-0">{{ announcement.title }}</h6>
+                                        {% if announcement.is_pinned %}
+                                            <i class="fas fa-thumbtack text-warning ms-2" title="置顶公告"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-{{ 'success' if announcement.is_active else 'secondary' }} me-2">
+                                            {{ '有效' if announcement.is_active else '已过期' }}
+                                        </span>
+                                        <span class="badge bg-secondary">
+                                            {{ '紧急' if announcement.priority == 'urgent' else '高' if announcement.priority == 'high' else '普通' if announcement.priority == 'normal' else '低' }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="announcement-content">{{ announcement.render_content() | safe }}</div>
+                                <hr>
+                                <div class="d-flex justify-content-between align-items-center text-muted">
+                                    <small>
+                                        <i class="fas fa-user me-1"></i>
+                                        发布者：{{ announcement.creator.username }}
+                                    </small>
+                                    <small>
+                                        <i class="fas fa-clock me-1"></i>
+                                        {{ announcement.created_at | beijing_datetime }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    
+                    <!-- 分页 -->
+                    {% if history_announcements.pages > 1 %}
+                        <nav aria-label="公告分页">
+                            <ul class="pagination justify-content-center">
+                                {% if history_announcements.has_prev %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('main.announcements', page=history_announcements.prev_num) }}">上一页</a>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for page_num in history_announcements.iter_pages() %}
+                                    {% if page_num %}
+                                        {% if page_num != history_announcements.page %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="{{ url_for('main.announcements', page=page_num) }}">{{ page_num }}</a>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ page_num }}</span>
+                                            </li>
+                                        {% endif %}
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if history_announcements.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('main.announcements', page=history_announcements.next_num) }}">下一页</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-bullhorn fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">暂无历史公告</h5>
+                        <p class="text-muted">系统公告将在这里显示</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.announcement-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.announcement-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.announcement-content {
+    line-height: 1.6;
+}
+
+.announcement-content h1,
+.announcement-content h2,
+.announcement-content h3,
+.announcement-content h4,
+.announcement-content h5,
+.announcement-content h6 {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.announcement-content p {
+    margin-bottom: 1rem;
+}
+
+.announcement-content ul,
+.announcement-content ol {
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+}
+
+.announcement-content blockquote {
+    border-left: 4px solid #dee2e6;
+    padding-left: 1rem;
+    margin: 1rem 0;
+    color: #6c757d;
+}
+
+.announcement-content code {
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+}
+
+.announcement-content pre {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+}
+</style>
+{% endblock %}

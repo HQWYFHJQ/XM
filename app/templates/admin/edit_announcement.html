@@ -1,0 +1,532 @@
+{% extends "admin/base.html" %}
+
+{% block title %}编辑公告 - 管理后台{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-edit me-2"></i>编辑公告</h2>
+    <a href="{{ url_for('admin.announcements') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>返回列表
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">公告信息</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">公告标题 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="title" name="title" 
+                               value="{{ announcement.title }}" required maxlength="200">
+                        <div class="form-text">标题将显示在公告列表中，最多200个字符</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="content" class="form-label">公告内容 <span class="text-danger">*</span></label>
+                        <div class="markdown-editor">
+                            <div class="editor-toolbar">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="bold" title="粗体">
+                                    <i class="fas fa-bold"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="italic" title="斜体">
+                                    <i class="fas fa-italic"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="header" title="标题">
+                                    <i class="fas fa-heading"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="link" title="链接">
+                                    <i class="fas fa-link"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="list" title="列表">
+                                    <i class="fas fa-list-ul"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="code" title="代码">
+                                    <i class="fas fa-code"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="quote" title="引用">
+                                    <i class="fas fa-quote-left"></i>
+                                </button>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="preview-btn" title="预览">
+                                        <i class="fas fa-eye"></i> 预览
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-btn" title="编辑" style="display: none;">
+                                        <i class="fas fa-edit"></i> 编辑
+                                    </button>
+                                </div>
+                            </div>
+                            <textarea class="form-control" id="content" name="content" rows="12" 
+                                      required>{{ announcement.content }}</textarea>
+                            <div id="preview-content" class="markdown-preview" style="display: none;"></div>
+                        </div>
+                        <div class="form-text">
+                            <strong>支持Markdown格式：</strong>
+                            <br>• **粗体** 或 __粗体__
+                            <br>• *斜体* 或 _斜体_
+                            <br>• # 标题1 ## 标题2 ### 标题3
+                            <br>• [链接文本](链接地址)
+                            <br>• - 无序列表 或 1. 有序列表
+                            <br>• `行内代码` 或 ```代码块```
+                            <br>• > 引用文本
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="type" class="form-label">公告类型</label>
+                                <select class="form-select" id="type" name="type">
+                                    <option value="system" {% if announcement.type == 'system' %}selected{% endif %}>系统公告</option>
+                                    <option value="maintenance" {% if announcement.type == 'maintenance' %}selected{% endif %}>维护通知</option>
+                                    <option value="notice" {% if announcement.type == 'notice' %}selected{% endif %}>重要通知</option>
+                                    <option value="warning" {% if announcement.type == 'warning' %}selected{% endif %}>警告</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="priority" class="form-label">优先级</label>
+                                <select class="form-select" id="priority" name="priority">
+                                    <option value="low" {% if announcement.priority == 'low' %}selected{% endif %}>低</option>
+                                    <option value="normal" {% if announcement.priority == 'normal' %}selected{% endif %}>普通</option>
+                                    <option value="high" {% if announcement.priority == 'high' %}selected{% endif %}>高</option>
+                                    <option value="urgent" {% if announcement.priority == 'urgent' %}selected{% endif %}>紧急</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="start_time" class="form-label">开始时间</label>
+                                <input type="datetime-local" class="form-control" id="start_time" name="start_time"
+                                       value="{% if announcement.start_time %}{{ announcement.start_time.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+                                <div class="form-text">留空表示立即生效</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="end_time" class="form-label">结束时间</label>
+                                <input type="datetime-local" class="form-control" id="end_time" name="end_time"
+                                       value="{% if announcement.end_time %}{{ announcement.end_time.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+                                <div class="form-text">留空表示永久有效</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="is_pinned" name="is_pinned"
+                                           {% if announcement.is_pinned %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_pinned">
+                                        置顶显示
+                                    </label>
+                                    <div class="form-text">置顶的公告将优先显示在用户界面</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+                                           {% if announcement.is_active %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_active">
+                                        启用公告
+                                    </label>
+                                    <div class="form-text">禁用的公告不会显示给用户</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin.announcements') }}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>取消
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>保存修改
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">公告信息</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <td><strong>ID:</strong></td>
+                        <td>{{ announcement.id }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>创建者:</strong></td>
+                        <td>{{ announcement.creator.username }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>创建时间:</strong></td>
+                        <td>{{ announcement.created_at | beijing_datetime }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>更新时间:</strong></td>
+                        <td>{{ announcement.updated_at | beijing_datetime }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>当前状态:</strong></td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if announcement.is_active else 'secondary' }}">
+                                {{ '启用' if announcement.is_active else '禁用' }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>置顶状态:</strong></td>
+                        <td>
+                            {% if announcement.is_pinned %}
+                                <i class="fas fa-thumbtack text-warning" title="已置顶"></i> 已置顶
+                            {% else %}
+                                <i class="fas fa-minus text-muted"></i> 未置顶
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">发布说明</h5>
+            </div>
+            <div class="card-body">
+                <h6>公告类型说明：</h6>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-cog text-primary me-2"></i><strong>系统公告：</strong>一般性系统通知</li>
+                    <li><i class="fas fa-tools text-warning me-2"></i><strong>维护通知：</strong>系统维护相关</li>
+                    <li><i class="fas fa-bell text-info me-2"></i><strong>重要通知：</strong>重要信息发布</li>
+                    <li><i class="fas fa-exclamation-triangle text-danger me-2"></i><strong>警告：</strong>重要警告信息</li>
+                </ul>
+                
+                <h6 class="mt-4">优先级说明：</h6>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-arrow-down text-muted me-2"></i><strong>低：</strong>一般信息</li>
+                    <li><i class="fas fa-minus text-primary me-2"></i><strong>普通：</strong>常规信息</li>
+                    <li><i class="fas fa-arrow-up text-warning me-2"></i><strong>高：</strong>重要信息</li>
+                    <li><i class="fas fa-exclamation-triangle text-danger me-2"></i><strong>紧急：</strong>紧急信息</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">预览</h5>
+            </div>
+            <div class="card-body">
+                <div id="preview-content" class="border rounded p-3 bg-light">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="{{ announcement.get_type_icon() }} text-primary me-2"></i>
+                        <h6 class="mb-0 me-3">{{ announcement.title }}</h6>
+                        <span class="badge bg-primary me-2">
+                            {{ '系统' if announcement.type == 'system' else '通知' if announcement.type == 'notice' else '维护' if announcement.type == 'maintenance' else '警告' }}
+                        </span>
+                        <span class="{{ announcement.get_priority_class() }}">
+                            <i class="fas fa-{{ 'arrow-down' if announcement.priority == 'low' else 'minus' if announcement.priority == 'normal' else 'arrow-up' if announcement.priority == 'high' else 'exclamation-triangle' }} me-1"></i>
+                            {{ '低' if announcement.priority == 'low' else '普通' if announcement.priority == 'normal' else '高' if announcement.priority == 'high' else '紧急' }}
+                        </span>
+                    </div>
+                    <div class="text-muted">{{ announcement.content | replace('\n', '<br>') | safe }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.markdown-editor {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+.editor-toolbar {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 0.5rem;
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.editor-toolbar .btn {
+    border-radius: 0.25rem;
+}
+
+.markdown-preview {
+    padding: 1rem;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    min-height: 200px;
+}
+
+.markdown-preview h1, .markdown-preview h2, .markdown-preview h3,
+.markdown-preview h4, .markdown-preview h5, .markdown-preview h6 {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.markdown-preview h1 { font-size: 2rem; }
+.markdown-preview h2 { font-size: 1.5rem; }
+.markdown-preview h3 { font-size: 1.25rem; }
+
+.markdown-preview p {
+    margin-bottom: 1rem;
+}
+
+.markdown-preview ul, .markdown-preview ol {
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+}
+
+.markdown-preview blockquote {
+    border-left: 4px solid #dee2e6;
+    padding-left: 1rem;
+    margin: 1rem 0;
+    color: #6c757d;
+}
+
+.markdown-preview code {
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+}
+
+.markdown-preview pre {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.375rem;
+    overflow-x: auto;
+}
+
+.markdown-preview pre code {
+    background-color: transparent;
+    padding: 0;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('content');
+    const previewContent = document.getElementById('preview-content');
+    const previewBtn = document.getElementById('preview-btn');
+    const editBtn = document.getElementById('edit-btn');
+    
+    // 工具栏按钮功能
+    const toolbarButtons = document.querySelectorAll('.editor-toolbar button[data-action]');
+    toolbarButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const action = this.getAttribute('data-action');
+            insertMarkdown(action);
+        });
+    });
+    
+    // 预览功能
+    previewBtn.addEventListener('click', function() {
+        const content = textarea.value;
+        if (content.trim()) {
+            // 发送到服务器进行Markdown渲染
+            fetch('/admin/announcements/preview', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content: content })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    previewContent.innerHTML = data.html;
+                    textarea.style.display = 'none';
+                    previewContent.style.display = 'block';
+                    previewBtn.style.display = 'none';
+                    editBtn.style.display = 'inline-block';
+                } else {
+                    alert('预览失败：' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('预览错误:', error);
+                alert('预览失败，请稍后重试');
+            });
+        }
+    });
+    
+    // 编辑功能
+    editBtn.addEventListener('click', function() {
+        textarea.style.display = 'block';
+        previewContent.style.display = 'none';
+        previewBtn.style.display = 'inline-block';
+        editBtn.style.display = 'none';
+    });
+    
+    // 插入Markdown标记
+    function insertMarkdown(action) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end);
+        let replacement = '';
+        
+        switch (action) {
+            case 'bold':
+                replacement = `**${selectedText || '粗体文本'}**`;
+                break;
+            case 'italic':
+                replacement = `*${selectedText || '斜体文本'}*`;
+                break;
+            case 'header':
+                replacement = `## ${selectedText || '标题文本'}`;
+                break;
+            case 'link':
+                replacement = `[${selectedText || '链接文本'}](链接地址)`;
+                break;
+            case 'list':
+                replacement = `- ${selectedText || '列表项'}`;
+                break;
+            case 'code':
+                replacement = `\`${selectedText || '代码'}\``;
+                break;
+            case 'quote':
+                replacement = `> ${selectedText || '引用文本'}`;
+                break;
+        }
+        
+        textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+        
+        // 设置光标位置
+        const newStart = start + replacement.length;
+        textarea.setSelectionRange(newStart, newStart);
+        textarea.focus();
+    }
+});
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const titleInput = document.getElementById('title');
+    const contentInput = document.getElementById('content');
+    const typeSelect = document.getElementById('type');
+    const prioritySelect = document.getElementById('priority');
+    const previewContent = document.getElementById('preview-content');
+    
+    function updatePreview() {
+        const title = titleInput.value.trim();
+        const content = contentInput.value.trim();
+        const type = typeSelect.value;
+        const priority = prioritySelect.value;
+        
+        if (!title && !content) {
+            previewContent.innerHTML = '<p class="text-muted mb-0">输入标题和内容后将显示预览</p>';
+            return;
+        }
+        
+        let previewHtml = '';
+        
+        if (title) {
+            const typeIcons = {
+                'system': 'fas fa-cog',
+                'maintenance': 'fas fa-tools',
+                'notice': 'fas fa-bell',
+                'warning': 'fas fa-exclamation-triangle'
+            };
+            
+            const priorityClasses = {
+                'low': 'text-muted',
+                'normal': 'text-primary',
+                'high': 'text-warning',
+                'urgent': 'text-danger'
+            };
+            
+            const typeNames = {
+                'system': '系统公告',
+                'maintenance': '维护通知',
+                'notice': '重要通知',
+                'warning': '警告'
+            };
+            
+            const priorityNames = {
+                'low': '低',
+                'normal': '普通',
+                'high': '高',
+                'urgent': '紧急'
+            };
+            
+            previewHtml += `
+                <div class="d-flex align-items-center mb-2">
+                    <i class="${typeIcons[type]} text-primary me-2"></i>
+                    <h6 class="mb-0 me-3">${title}</h6>
+                    <span class="badge bg-primary me-2">${typeNames[type]}</span>
+                    <span class="${priorityClasses[priority]}">
+                        <i class="fas fa-${priority === 'low' ? 'arrow-down' : priority === 'normal' ? 'minus' : priority === 'high' ? 'arrow-up' : 'exclamation-triangle'} me-1"></i>
+                        ${priorityNames[priority]}
+                    </span>
+                </div>
+            `;
+        }
+        
+        if (content) {
+            previewHtml += `<div class="text-muted">${content.replace(/\n/g, '<br>')}</div>`;
+        }
+        
+        previewContent.innerHTML = previewHtml;
+    }
+    
+    titleInput.addEventListener('input', updatePreview);
+    contentInput.addEventListener('input', updatePreview);
+    typeSelect.addEventListener('change', updatePreview);
+    prioritySelect.addEventListener('change', updatePreview);
+    
+    // 表单验证
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const title = titleInput.value.trim();
+        const content = contentInput.value.trim();
+        
+        if (!title) {
+            e.preventDefault();
+            alert('请输入公告标题');
+            titleInput.focus();
+            return;
+        }
+        
+        if (!content) {
+            e.preventDefault();
+            alert('请输入公告内容');
+            contentInput.focus();
+            return;
+        }
+        
+        const startTime = document.getElementById('start_time').value;
+        const endTime = document.getElementById('end_time').value;
+        
+        if (startTime && endTime && new Date(startTime) >= new Date(endTime)) {
+            e.preventDefault();
+            alert('开始时间必须早于结束时间');
+            return;
+        }
+    });
+});
+</script>
+{% endblock %}

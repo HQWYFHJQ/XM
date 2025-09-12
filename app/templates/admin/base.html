@@ -165,6 +165,13 @@
                                 分类管理
                             </a>
                             
+                            <!-- 公告管理 -->
+                            <a class="nav-link {% if request.endpoint in ['admin.announcements', 'admin.create_announcement', 'admin.edit_announcement', 'admin.announcement_stats'] %}active{% endif %}" 
+                               href="{{ url_for('admin.announcements') }}">
+                                <i class="fas fa-bullhorn"></i>
+                                公告管理
+                            </a>
+                            
                             <!-- 行为管理 -->
                             <a class="nav-link {% if request.endpoint == 'admin.behaviors' %}active{% endif %}" 
                                href="{{ url_for('admin.behaviors') }}">

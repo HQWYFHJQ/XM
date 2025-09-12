@@ -6,7 +6,7 @@
 """
 
 from app import create_app, db
-from app.models import User, Item, Category, UserBehavior, Recommendation, Transaction
+from app.models import User, Item, Category, UserBehavior, Recommendation, Transaction, Announcement
 import os
 
 app = create_app()
@@ -21,7 +21,8 @@ def make_shell_context():
         'Category': Category,
         'UserBehavior': UserBehavior,
         'Recommendation': Recommendation,
-        'Transaction': Transaction
+        'Transaction': Transaction,
+        'Announcement': Announcement
     }
 
 @app.cli.command()
