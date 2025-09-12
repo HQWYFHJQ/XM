@@ -154,7 +154,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 滚动到底部
     function scrollToBottom() {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+        setTimeout(() => {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }, 100);
     }
     
     // 事件监听
@@ -188,67 +190,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 添加一些快捷回复按钮（可选）
-    function addQuickReplies() {
-        const quickReplies = [
-            '推荐手机',
-            '推荐电脑',
-            '价格优惠',
-            '商品质量',
-            '交易流程',
-            '使用帮助'
-        ];
-        
-        const quickReplyContainer = document.createElement('div');
-        quickReplyContainer.className = 'ai-quick-replies';
-        quickReplyContainer.style.cssText = `
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 16px;
-            padding: 0 16px;
-        `;
-        
-        quickReplies.forEach(reply => {
-            const button = document.createElement('button');
-            button.className = 'btn btn-sm btn-outline-primary';
-            button.textContent = reply;
-            button.style.cssText = `
-                border-radius: 20px;
-                font-size: 12px;
-                padding: 4px 12px;
-                border: 1px solid #6c5ce7;
-                color: #6c5ce7;
-                background: transparent;
-                cursor: pointer;
-                transition: all 0.3s;
-            `;
-            
-            button.addEventListener('click', function() {
-                userInput.value = reply;
-                sendMessage();
-            });
-            
-            button.addEventListener('mouseenter', function() {
-                this.style.background = '#6c5ce7';
-                this.style.color = 'white';
-            });
-            
-            button.addEventListener('mouseleave', function() {
-                this.style.background = 'transparent';
-                this.style.color = '#6c5ce7';
-            });
-            
-            quickReplyContainer.appendChild(button);
+    // 模态框打开时自动滚动到底部
+    if (modal) {
+        modal.addEventListener('shown.bs.modal', function() {
+            setTimeout(() => {
+                scrollToBottom();
+            }, 300);
         });
-        
-        // 在欢迎消息后插入快捷回复
-        const welcomeMessage = chatContainer.querySelector('.ai-welcome-message');
-        if (welcomeMessage) {
-            welcomeMessage.parentNode.insertBefore(quickReplyContainer, welcomeMessage.nextSibling);
-        }
     }
-    
-    // 初始化快捷回复
-    addQuickReplies();
 });

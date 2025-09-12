@@ -18,7 +18,47 @@
     border-radius: var(--ai-border-radius);
     box-shadow: var(--ai-card-shadow);
     overflow: hidden;
-    max-height: 80vh;
+    max-height: 90vh;
+    width: 90vw;
+    max-width: 1000px;
+    margin: 0;
+    position: relative;
+}
+
+/* 模态框居中显示 */
+.modal-dialog {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* 确保AI推荐模态框完美居中 */
+#aiRecommendModal .modal-dialog {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 /* AI推荐模态框头部 */
@@ -99,17 +139,20 @@
     padding: 0;
     background: var(--ai-bg-color);
     background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MDAiIGhlaWdodD0iNjAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii4wNSIgbnVtT2N0YXZlcz0iNSIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjxmZUNvbG9yTWF0cml4IHZhbHVlcz0iMSAwIDAgMCAwIDAgMSAwIDAgMCAwIDAgMSAwIDAgMCAwIDAgLjA1IDAiLz48L2ZpbHRlcj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjYwMCIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDMiLz48L3N2Zz4=');
-    min-height: 400px;
-    max-height: 500px;
+    min-height: 500px;
+    max-height: 600px;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .ai-chat-container {
-    height: 100%;
+    flex: 1;
     padding: 20px 16px 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    scroll-behavior: smooth;
 }
 
 /* 欢迎消息 */
