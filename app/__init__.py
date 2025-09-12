@@ -96,12 +96,34 @@ def create_app(config_name='default'):
     def beijing_date_filter(dt):
         """将UTC时间转换为北京时间并格式化为日期"""
         from app.utils import format_beijing_time
+        from datetime import datetime
+        
+        # 如果输入是字符串，尝试解析为datetime对象
+        if isinstance(dt, str):
+            try:
+                # 尝试解析ISO格式的时间字符串
+                dt = datetime.fromisoformat(dt.replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                # 如果解析失败，返回原始字符串
+                return dt
+        
         return format_beijing_time(dt, '%Y-%m-%d')
     
     @app.template_filter('beijing_datetime')
     def beijing_datetime_filter(dt):
         """将UTC时间转换为北京时间并格式化为日期时间"""
         from app.utils import format_beijing_time
+        from datetime import datetime
+        
+        # 如果输入是字符串，尝试解析为datetime对象
+        if isinstance(dt, str):
+            try:
+                # 尝试解析ISO格式的时间字符串
+                dt = datetime.fromisoformat(dt.replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                # 如果解析失败，返回原始字符串
+                return dt
+        
         return format_beijing_time(dt, '%Y-%m-%d %H:%M')
     
     # 创建数据库表

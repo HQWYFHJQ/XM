@@ -47,8 +47,8 @@
             {% for item in recommendations %}
             <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
                 <div class="card h-100 shadow-sm recommendation-item" data-item-id="{{ item.id }}">
-                    {% if item.get_main_image() %}
-                    <img src="{{ url_for('static', filename='uploads/items/' + item.get_main_image()) }}" 
+                    {% if item.main_image %}
+                    <img src="{{ url_for('static', filename='uploads/items/' + item.main_image) }}" 
                          class="card-img-top" alt="{{ item.title }}" style="height: 200px; object-fit: cover;">
                     {% else %}
                     <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
@@ -296,8 +296,8 @@ function loadMoreRecommendations() {
                     return `
                         <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
                             <div class="card h-100 shadow-sm recommendation-item" data-item-id="${item.id}">
-                                ${item.get_main_image() ? 
-                                    `<img src="/static/uploads/items/${item.get_main_image()}" class="card-img-top" alt="${item.title}" style="height: 200px; object-fit: cover;">` :
+                                ${item.main_image ? 
+                                    `<img src="/static/uploads/items/${item.main_image}" class="card-img-top" alt="${item.title}" style="height: 200px; object-fit: cover;">` :
                                     `<div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;"><i class="fas fa-image fa-3x text-muted"></i></div>`
                                 }
                                 <div class="card-body d-flex flex-column">
