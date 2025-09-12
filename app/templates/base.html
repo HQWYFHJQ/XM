@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}校园跳蚤市场{% endblock %}</title>
     
+    <!-- 立即隐藏公告的脚本 - 必须在任何CSS之前执行 -->
+    {% if announcements and current_user.is_authenticated %}
+    <script>
+        // 立即创建并注入隐藏样式，防止公告闪现
+        (function() {
+            var style = document.createElement('style');
+            style.id = 'announcement-hide-style';
+            style.textContent = '.announcement-item { display: none !important; opacity: 0 !important; visibility: hidden !important; }';
+            document.head.insertBefore(style, document.head.firstChild);
+        })();
+    </script>
+    {% endif %}
+    
     <!-- Favicon -->
     <link rel="shortcut icon" href="{{ url_for('static', filename='images/logo.ico') }}" type="image/x-icon">
     <link rel="icon" href="{{ url_for('static', filename='images/logo.ico') }}" type="image/x-icon">
@@ -187,8 +200,8 @@
     {% if announcements and current_user.is_authenticated %}
         <div class="container mt-3" role="alert" aria-live="polite" aria-atomic="true">
             {% for announcement in announcements %}
-                <div class="alert alert-{{ 'danger' if announcement.priority == 'urgent' else 'warning' if announcement.priority == 'high' else 'info' if announcement.type == 'notice' else 'primary' }} alert-dismissible fade show announcement-item" 
-                     role="alert" aria-live="assertive" data-announcement-id="{{ announcement.id }}">
+                <div class="alert alert-{{ 'danger' if announcement.priority == 'urgent' else 'warning' if announcement.priority == 'high' else 'info' if announcement.type == 'notice' else 'primary' }} alert-dismissible announcement-item announcement-hidden" 
+                     role="alert" aria-live="assertive" data-announcement-id="{{ announcement.id }}" style="display: none !important; opacity: 0 !important; visibility: hidden !important;">
                     <div class="d-flex align-items-start">
                         <i class="{{ announcement.get_type_icon() }} me-2 mt-1" aria-hidden="true"></i>
                         <div class="flex-grow-1">
@@ -431,23 +444,78 @@
     
     {% if announcements and current_user.is_authenticated %}
     <!-- 公告相关CSS和JavaScript -->
+    <script>
+        // 最早期脚本：在页面解析时立即隐藏所有公告，防止闪现
+        (function() {
+            // 立即隐藏所有公告元素
+            const style = document.createElement('style');
+            style.textContent = `
+                .announcement-item {
+                    display: none !important;
+                    opacity: 0 !important;
+                    visibility: hidden !important;
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // 等待DOM解析完成后处理公告状态
+            function earlyProcessAnnouncements() {
+                const readAnnouncements = JSON.parse(localStorage.getItem('readAnnouncements') || '[]');
+                const announcementItems = document.querySelectorAll('.announcement-item');
+                
+                announcementItems.forEach(function(item) {
+                    const announcementId = parseInt(item.getAttribute('data-announcement-id'));
+                    
+                    if (readAnnouncements.includes(announcementId)) {
+                        // 已读公告：保持隐藏
+                        item.setAttribute('data-read', 'true');
+                        item.classList.add('announcement-hidden');
+                        item.style.display = 'none';
+                        item.style.opacity = '0';
+                        item.style.visibility = 'hidden';
+                    } else {
+                        // 未读公告：显示
+                        item.setAttribute('data-read', 'false');
+                        item.classList.remove('announcement-hidden');
+                        item.style.display = 'block';
+                        item.style.opacity = '1';
+                        item.style.visibility = 'visible';
+                    }
+                });
+            }
+            
+            // 在DOM解析完成后立即执行
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', earlyProcessAnnouncements);
+            } else {
+                earlyProcessAnnouncements();
+            }
+        })();
+    </script>
     <style>
-        /* 确保已读公告在页面加载时完全不显示 */
-        .announcement-item[data-read="true"] {
+        /* 所有公告初始状态：完全隐藏，避免闪现 */
+        .announcement-item,
+        .announcement-hidden {
             display: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
         }
         
-        /* 为未读公告添加初始隐藏状态，避免闪烁 */
-        .announcement-item:not([data-read="true"]) {
-            opacity: 0;
-            transform: translateY(-20px);
-            transition: opacity 0.5s ease, transform 0.5s ease;
+        /* 已读公告保持隐藏 */
+        .announcement-item[data-read="true"],
+        .announcement-hidden[data-read="true"] {
+            display: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
         }
         
-        /* 已读公告的显示状态 */
+        /* 未读公告显示状态 */
         .announcement-item[data-read="false"] {
-            opacity: 1;
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
             transform: translateY(0);
+            transition: opacity 0.5s ease, transform 0.5s ease;
         }
     </style>
     {% endif %}
@@ -497,9 +565,9 @@
             }
         }
         
-        // 页面加载时处理公告显示状态
-        document.addEventListener('DOMContentLoaded', function() {
-            debugLog('DOM内容加载完成，开始处理公告');
+        // 处理公告显示状态的函数
+        function processAnnouncements() {
+            debugLog('处理公告显示状态');
             
             const readAnnouncements = JSON.parse(localStorage.getItem('readAnnouncements') || '[]');
             debugLog('从localStorage读取已读公告:', readAnnouncements);
@@ -513,22 +581,35 @@
                 
                 if (readAnnouncements.includes(announcementId)) {
                     debugLog(`公告 ${announcementId} 已读，标记为已读状态`);
-                    // 使用CSS类控制，确保完全不显示
+                    // 已读公告：保持隐藏
                     item.setAttribute('data-read', 'true');
+                    item.classList.add('announcement-hidden');
+                    item.style.display = 'none';
+                    item.style.opacity = '0';
+                    item.style.visibility = 'hidden';
                 } else {
                     debugLog(`公告 ${announcementId} 未读，标记为未读状态`);
-                    // 标记为未读，触发CSS显示动画
+                    // 未读公告：显示
                     item.setAttribute('data-read', 'false');
-                    
-                    // 延迟显示，创建淡入效果
-                    setTimeout(function() {
-                        debugLog(`开始显示公告 ${announcementId} 的淡入动画`);
-                        // CSS会自动处理动画效果
-                    }, 100);
+                    item.classList.remove('announcement-hidden');
+                    item.style.display = 'block';
+                    item.style.opacity = '1';
+                    item.style.visibility = 'visible';
                 }
             });
             
             debugLog('公告处理完成');
+        }
+        
+        // 立即处理公告显示状态，避免闪现
+        processAnnouncements();
+        
+        // 页面可见性变化时重新处理（处理页面跳转）
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                debugLog('页面重新可见，重新处理公告状态');
+                processAnnouncements();
+            }
         });
         
         // 页面完全加载后的额外检查
