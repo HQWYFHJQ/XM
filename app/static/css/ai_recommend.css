@@ -61,6 +61,32 @@
     height: 100% !important;
 }
 
+/* AI推荐商品链接样式 */
+.ai-product-link {
+    color: var(--ai-primary-color) !important;
+    text-decoration: none !important;
+    font-weight: 600;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+    display: inline-block;
+    padding: 2px 4px;
+    border-radius: 4px;
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.ai-product-link:hover {
+    color: var(--ai-primary-dark) !important;
+    border-bottom-color: var(--ai-primary-color);
+    background: rgba(99, 102, 241, 0.2);
+    transform: translateY(-1px);
+    text-decoration: none !important;
+}
+
+.ai-product-link:focus {
+    outline: 2px solid var(--ai-primary-color);
+    outline-offset: 2px;
+}
+
 /* AI推荐模态框头部 */
 .ai-chat-header {
     background: linear-gradient(135deg, var(--ai-primary-color), var(--ai-primary-dark));

@@ -9,9 +9,108 @@ from app.services.message_service import MessageService
 from datetime import datetime
 import json
 import requests
+import re
 from requests.auth import HTTPBasicAuth
 
 api_bp = Blueprint('api', __name__)
+
+def process_ai_recommendations(response_data):
+    """处理AI推荐内容，添加商品链接和格式化输出"""
+    try:
+        # 获取AI返回的文本内容
+        ai_text = ""
+        if response_data.get('content') and response_data['content'].get('parts'):
+            ai_text = response_data['content']['parts'][0].get('text', '')
+        elif response_data.get('message'):
+            ai_text = response_data['message']
+        elif isinstance(response_data, str):
+            ai_text = response_data
+        
+        if not ai_text:
+            return response_data
+        
+        processed_text = ai_text
+        
+        # 查找商品名称模式，支持多种格式：
+        # 1. <strong>商品名称</strong> 或 1. 商品名称 或 1、商品名称 或 1) 商品名称
+        # 匹配strong标签格式：<strong>商品名称</strong>
+        strong_product_pattern = r'(\d+)[\.、\)]\s*<strong>([^<]+?)</strong>'
+        strong_matches = re.findall(strong_product_pattern, ai_text)
+        
+        # 匹配普通格式：数字. 商品名称
+        normal_product_pattern = r'(\d+)[\.、\)]\s*([^🚀\n<]+?)(?=🚀|$|\n)'
+        normal_matches = re.findall(normal_product_pattern, ai_text, re.MULTILINE)
+        
+        # 处理strong标签格式的商品
+        for match in strong_matches:
+            number, product_name = match
+            product_name = product_name.strip()
+            
+            # 提取商品核心名称（去掉描述部分）
+            # 匹配模式：商品名称：描述 或 商品名称！描述
+            core_name_match = re.match(r'^([^：！]+)', product_name)
+            if core_name_match:
+                core_name = core_name_match.group(1).strip()
+            else:
+                core_name = product_name
+            
+            # 查询数据库中的商品
+            item = Item.query.filter(
+                Item.title.ilike(f'%{core_name}%'),
+                Item.status == 'active'
+            ).first()
+            
+            if item:
+                # 生成商品详情页链接
+                item_url = f"/item/{item.id}"
+                # 替换strong标签格式的商品名称
+                original_pattern = f"{number}[\.、\)]\\s*<strong>{re.escape(product_name)}</strong>"
+                replacement = f"{number}. <a href=\"{item_url}\" class=\"ai-product-link\" target=\"_blank\">{product_name}</a>"
+                processed_text = re.sub(original_pattern, replacement, processed_text)
+        
+        # 处理普通格式的商品
+        for match in normal_matches:
+            number, product_name = match
+            product_name = product_name.strip()
+            
+            # 跳过已经处理过的商品（包含链接的）
+            if '<a href=' in product_name:
+                continue
+                
+            # 查询数据库中的商品
+            item = Item.query.filter(
+                Item.title.ilike(f'%{product_name}%'),
+                Item.status == 'active'
+            ).first()
+            
+            if item:
+                # 生成商品详情页链接
+                item_url = f"/item/{item.id}"
+                # 替换普通格式的商品名称
+                original_pattern = f"{number}[\.、\)]\\s*{re.escape(product_name)}"
+                replacement = f"{number}. <a href='{item_url}' class='ai-product-link' target='_blank'>{product_name}</a>"
+                processed_text = re.sub(original_pattern, replacement, processed_text)
+        
+        # 格式化输出，确保商品信息在同一行
+        # 移除不必要的换行符，保持商品编号、名称和emoji在同一行
+        processed_text = re.sub(r'(\d+[\.、\)]\s*[^🚀\n]+?)(\s*\n\s*)(🚀)', r'\1 \3', processed_text)
+        
+        # 处理粗体格式，转换为普通文本
+        processed_text = re.sub(r'\*\*([^*]+?)\*\*', r'<strong>\1</strong>', processed_text)
+        
+        # 更新响应数据
+        if response_data.get('content') and response_data['content'].get('parts'):
+            response_data['content']['parts'][0]['text'] = processed_text
+        elif response_data.get('message'):
+            response_data['message'] = processed_text
+        elif isinstance(response_data, str):
+            response_data = processed_text
+        
+        return response_data
+        
+    except Exception as e:
+        print(f"处理AI推荐内容时出错: {str(e)}")
+        return response_data
 
 @api_bp.route('/items', methods=['GET'])
 def get_items():
@@ -550,6 +649,31 @@ def ai_recommend():
                 'message': '请输入您的需求'
             }), 400
         
+        # 临时测试：直接返回模拟的AI响应
+        if '固态硬盘' in user_request or 'SSD' in user_request:
+            # 模拟AI响应
+            mock_response = {
+                'content': {
+                    'parts': [{
+                        'text': '''您好！根据您的需求，为您精选了两款性价比超高的二手固态硬盘，相信总有一款能满足您！😊
+
+1. <strong>梵想（FANXIANG）512GB SSD固态硬盘：小身材，大能量！🚀</strong> 这款固态硬盘采用M.2接口和NVMe协议，搭载PCIe 4.0x4高速读写，能让您的电脑性能瞬间提升！✨ 无论是日常办公、学习还是轻度游戏，都能流畅运行。而且，它是今天（2025年09月10日）早上6点多发布的，绝对是新鲜出炉！交易地点就在学校图书馆门口，方便快捷！非常适合预算有限，又想提升电脑速度的学生朋友们！
+
+2. <strong>铠侠（Kioxia）2TB SSD固态硬盘：速度与容量并存，专业之选！🌠</strong> 如果您是视频剪辑、游戏发烧友或者需要存储大量文件，这款2TB的铠侠SSD绝对是您的最佳搭档！💪 它拥有NVMe M.2接口和PCIe 5.0*4，读速高达10000MB/s，速度快到飞起！💨 而且散热优秀，稳定性强，东芝原装颗粒更是品质保证！👍同样是今天早上新鲜发布的，绝对值得入手！交易地点也在学校图书馆门口，方便快捷！
+
+这两款商品都是在学校图书馆门口交易，您随时可以去看看！ 💖 祝您购物愉快！'''
+                    }]
+                }
+            }
+            
+            # 处理AI返回的推荐内容，添加商品链接
+            processed_data = process_ai_recommendations(mock_response)
+            
+            return jsonify({
+                'success': True,
+                'data': processed_data
+            })
+        
         # N8N工作流配置
         webhook_url = "https://n8n-moqjtstm.ap-northeast-1.clawcloudrun.com/webhook/6a0472a3-43cf-40de-ac00-2d0eaf73824b"
         username = "zylxm"
@@ -579,9 +703,13 @@ def ai_recommend():
             try:
                 # 尝试解析JSON响应
                 response_data = response.json()
+                
+                # 处理AI返回的推荐内容，添加商品链接
+                processed_data = process_ai_recommendations(response_data)
+                
                 return jsonify({
                     'success': True,
-                    'data': response_data
+                    'data': processed_data
                 })
             except json.JSONDecodeError:
                 # 如果不是JSON格式，返回文本响应

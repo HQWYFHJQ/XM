@@ -105,6 +105,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 添加消息到聊天框
     function addMessage(text, sender) {
+        // 保存当前输入框的焦点状态
+        const wasFocused = document.activeElement === userInput;
+        const cursorPosition = wasFocused ? userInput.selectionStart : 0;
+        
         const messageDiv = document.createElement('div');
         messageDiv.className = `ai-message ai-message-${sender}`;
         
@@ -120,6 +124,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         chatContainer.appendChild(messageDiv);
         scrollToBottom();
+        
+        // 恢复输入框焦点
+        if (wasFocused) {
+            setTimeout(() => {
+                userInput.focus();
+                userInput.setSelectionRange(cursorPosition, cursorPosition);
+            }, 10);
+        }
     }
     
     // 显示"正在输入"指示器
@@ -154,8 +166,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 滚动到底部
     function scrollToBottom() {
+        // 保存当前输入框的焦点状态
+        const wasFocused = document.activeElement === userInput;
+        const cursorPosition = wasFocused ? userInput.selectionStart : 0;
+        
         setTimeout(() => {
             chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // 恢复输入框焦点
+            if (wasFocused) {
+                setTimeout(() => {
+                    userInput.focus();
+                    userInput.setSelectionRange(cursorPosition, cursorPosition);
+                }, 10);
+            }
         }, 100);
     }
     
