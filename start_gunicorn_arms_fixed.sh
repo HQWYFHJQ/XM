@@ -1,7 +1,7 @@
 #!/bin/bash
-# 使用Gunicorn + ARMS探针启动脚本（系统服务形式）
+# 修复后的ARMS启动脚本
 
-echo "=== 校园跳蚤市场应用启动脚本（系统服务形式）==="
+echo "=== 校园跳蚤市场应用启动脚本（ARMS云控模式）==="
 echo "时间: $(date)"
 echo ""
 
@@ -34,23 +34,15 @@ mkdir -p uploads/avatars
 mkdir -p uploads/items
 mkdir -p logs
 
-# 安装Gunicorn（如果未安装）
-echo "检查Gunicorn安装..."
-if ! command -v gunicorn &> /dev/null; then
-    echo "安装Gunicorn..."
-    pip install gunicorn>=20.1.0
-else
-    echo "✓ Gunicorn已安装"
-fi
-
 # 检查aliyun-instrument命令
 echo "检查aliyun-instrument命令..."
-if command -v aliyun-instrument &> /dev/null; then
+if ! command -v aliyun-instrument &> /dev/null; then
+    echo "✗ aliyun-instrument 命令不可用"
+    echo "请确保在condavenv环境中安装了aliyun-bootstrap"
+    exit 1
+else
     echo "✓ aliyun-instrument 命令可用"
     aliyun-instrument --version
-else
-    echo "✗ aliyun-instrument 命令不可用"
-    exit 1
 fi
 echo ""
 
@@ -92,7 +84,7 @@ echo $APP_PID > logs/app.pid
 
 # 等待应用启动
 echo "等待应用启动..."
-sleep 5
+sleep 8
 
 # 检查应用是否启动成功
 if ps -p $APP_PID > /dev/null; then
@@ -138,6 +130,11 @@ if ps -p $APP_PID > /dev/null; then
     echo "  停止应用: ./stop_app.sh"
     echo "  重启应用: ./restart_app.sh"
     echo "  查看日志: tail -f logs/gunicorn_service.log"
+    echo ""
+    echo "ARMS监控:"
+    echo "  等待5-10分钟让数据上报到阿里云ARMS控制台"
+    echo "  在ARMS控制台查看应用监控数据"
+    echo "  检查是否有告警和性能指标"
     
 else
     echo "✗ 应用启动失败"

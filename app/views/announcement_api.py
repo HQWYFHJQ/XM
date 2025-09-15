@@ -8,7 +8,7 @@ import logging
 
 announcement_api_bp = Blueprint('announcement_api', __name__)
 
-@announcement_api_bp.route('/api/announcements/unread', methods=['GET'])
+@announcement_api_bp.route('/announcements/unread', methods=['GET'])
 @login_required
 def get_unread_announcements():
     """获取用户未读公告"""

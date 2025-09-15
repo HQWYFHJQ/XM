@@ -68,7 +68,7 @@ def create_app(config_name='default'):
     app.register_blueprint(data_viz_bp, url_prefix='/data-viz')
     app.register_blueprint(message_bp, url_prefix='/messages')
     app.register_blueprint(message_api_bp, url_prefix='/api/messages')
-    app.register_blueprint(announcement_api_bp)
+    app.register_blueprint(announcement_api_bp, url_prefix='/api')
     app.register_blueprint(transaction_api_bp, url_prefix='/api/transactions')
     
     # 添加模板上下文处理器
