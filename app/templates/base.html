@@ -82,11 +82,6 @@
                             <i class="fas fa-plus me-1" aria-hidden="true"></i>发布
                         </a>
                     </li>
-                    <li class="nav-item" role="none">
-                        <a class="nav-link" href="{{ url_for('main.announcements') }}" role="menuitem" aria-label="查看系统公告">
-                            <i class="fas fa-bullhorn me-1" aria-hidden="true"></i>公告
-                        </a>
-                    </li>
                     {% if current_user.is_authenticated %}
                     <li class="nav-item" role="none">
                         <a class="nav-link" href="{{ url_for('main.recommendations') }}" role="menuitem" aria-label="查看个性化推荐商品">
@@ -104,6 +99,13 @@
                     <li class="nav-item" role="none">
                             <a class="nav-link" href="{{ url_for('main.login') }}" role="menuitem" aria-label="登录后使用智能推荐">
                             <i class="fas fa-robot me-1" aria-hidden="true"></i>智能推荐
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item" role="none">
+                        <a class="nav-link" href="{{ url_for('main.announcements') }}" role="menuitem" aria-label="查看系统公告">
+                            <i class="fas fa-bullhorn me-1" aria-hidden="true"></i>公告
                         </a>
                     </li>
                     {% endif %}
