@@ -242,8 +242,11 @@
                                     {% set item = transaction.item %}
                                     <div class="d-flex align-items-center">
                                         {% if item.images %}
-                                            <img src="{{ url_for('static', filename='uploads/items/' + item.images[0]) }}" 
-                                                 class="me-2" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                                            {% set images_list = item.get_images_list() %}
+                                            {% if images_list %}
+                                                <img src="{{ url_for('static', filename='uploads/items/' + images_list[0]) }}" 
+                                                     class="me-2" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                                            {% endif %}
                                         {% endif %}
                                         <div>
                                             <div class="fw-bold">{{ item.title if item else '商品已删除' }}</div>

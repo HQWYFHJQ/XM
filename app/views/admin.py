@@ -120,7 +120,11 @@ def transactions():
     buyer_alias = aliased(User)
     seller_alias = aliased(User)
     
-    query = Transaction.query.join(Item).join(buyer_alias, Transaction.buyer_id == buyer_alias.id).join(seller_alias, Transaction.seller_id == seller_alias.id)
+    query = Transaction.query.options(
+        db.joinedload(Transaction.item),
+        db.joinedload(Transaction.buyer),
+        db.joinedload(Transaction.seller)
+    ).join(Item).join(buyer_alias, Transaction.buyer_id == buyer_alias.id).join(seller_alias, Transaction.seller_id == seller_alias.id)
     
     # 状态筛选
     if status != 'all':
