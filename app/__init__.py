@@ -139,3 +139,7 @@ def create_app(config_name='default'):
             print("请确保MySQL服务正在运行并且配置正确")
     
     return app
+
+# 导出app实例供Gunicorn使用
+# 注意：这里不能直接调用create_app()，因为会导致循环导入
+# 需要在运行时动态创建

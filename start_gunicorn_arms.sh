@@ -29,4 +29,4 @@ echo "Worker进程数: $(($(nproc) * 2 + 1))"
 echo "启动时间: $(date)"
 
 # 使用ARMS探针启动Gunicorn
-aliyun-instrument gunicorn --config gunicorn.conf.py app:app
+aliyun-instrument gunicorn --config gunicorn.conf.py wsgi:app

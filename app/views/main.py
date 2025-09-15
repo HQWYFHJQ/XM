@@ -329,6 +329,14 @@ def item_detail(item_id):
     """商品详情页"""
     item = Item.query.get_or_404(item_id)
     
+    # 检查商品状态，如果是已售出商品，只允许卖家查看
+    if item.status == 'sold' and current_user.is_authenticated and current_user.id != item.seller_id:
+        flash('该商品已售出，无法查看详情', 'warning')
+        return redirect(url_for('main.items'))
+    elif item.status == 'sold' and not current_user.is_authenticated:
+        flash('该商品已售出，无法查看详情', 'warning')
+        return redirect(url_for('main.items'))
+    
     # 增加浏览次数
     item.increment_view_count()
     
@@ -344,7 +352,7 @@ def item_detail(item_id):
         db.session.add(behavior)
         db.session.commit()
     
-    # 获取相关推荐
+    # 获取相关推荐（只推荐在售商品）
     related_items = Item.query.filter(
         Item.category_id == item.category_id,
         Item.id != item.id,

@@ -106,22 +106,37 @@
                                 <button class="btn btn-success btn-lg buy-btn" data-item-id="{{ item.id }}" data-item-title="{{ item.title }}" data-item-price="{{ item.price }}">
                                     <i class="fas fa-shopping-cart me-2"></i>立即购买
                                 </button>
-                                {% endif %}
                                 <button class="btn btn-primary contact-btn" data-item-id="{{ item.id }}">
                                     <i class="fas fa-comments me-2"></i>联系卖家
                                 </button>
                                 <button class="btn btn-outline-danger like-btn" data-item-id="{{ item.id }}">
                                     <i class="far fa-heart me-2"></i>点赞
                                 </button>
+                                {% elif item.status == 'sold' %}
+                                <div class="alert alert-warning" role="alert">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>该商品已售出
+                                </div>
+                                {% endif %}
                             {% else %}
+                                {% if item.status == 'sold' %}
+                                <div class="alert alert-info" role="alert">
+                                    <i class="fas fa-check-circle me-2"></i>该商品已售出
+                                </div>
+                                {% endif %}
                             <a href="{{ url_for('main.my_items') }}" class="btn btn-secondary">
                                 <i class="fas fa-edit me-2"></i>管理我的商品
                             </a>
                             {% endif %}
                         {% else %}
-                        <a href="{{ url_for('main.login') }}" class="btn btn-primary">
-                            <i class="fas fa-sign-in-alt me-2"></i>登录后购买
-                        </a>
+                            {% if item.status == 'active' %}
+                            <a href="{{ url_for('main.login') }}" class="btn btn-primary">
+                                <i class="fas fa-sign-in-alt me-2"></i>登录后购买
+                            </a>
+                            {% elif item.status == 'sold' %}
+                            <div class="alert alert-warning" role="alert">
+                                <i class="fas fa-exclamation-triangle me-2"></i>该商品已售出
+                            </div>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>

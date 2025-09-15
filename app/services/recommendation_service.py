@@ -302,9 +302,9 @@ class RecommendationService:
             algo = SVD(n_factors=50, random_state=42)
             algo.fit(trainset)
             
-            # 获取所有商品ID
+            # 获取所有商品ID（只包含在售商品）
             all_items = Item.query.filter(
-                Item.status.in_(['active', 'sold']),
+                Item.status == 'active',
                 Item.audit_status == 'approved'
             ).all()
             
@@ -343,9 +343,9 @@ class RecommendationService:
     
     def _build_item_feature_matrix(self) -> pd.DataFrame:
         """构建商品特征矩阵"""
-        # 放宽查询条件
+        # 只查询在售商品
         items = Item.query.filter(
-            Item.status.in_(['active', 'sold']),
+            Item.status == 'active',
             Item.audit_status == 'approved'
         ).all()
         
@@ -440,9 +440,9 @@ class RecommendationService:
     
     def _calculate_popularity_scores(self) -> List[Dict]:
         """计算商品热度分数"""
-        # 放宽查询条件，包含所有状态的商品
+        # 只查询在售商品，不包含已售出商品
         items = Item.query.filter(
-            Item.status.in_(['active', 'sold']),  # 包含已售出的商品
+            Item.status == 'active',
             Item.audit_status == 'approved'
         ).all()
         
