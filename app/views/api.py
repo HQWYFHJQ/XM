@@ -299,10 +299,15 @@ def get_recommendations():
     algorithm = request.args.get('algorithm', 'hybrid')
     limit = request.args.get('limit', 10, type=int)
     
-    # 验证算法类型
-    valid_algorithms = ['hybrid', 'collaborative_filtering', 'content_based', 'popularity']
-    if algorithm not in valid_algorithms:
-        algorithm = 'hybrid'
+    # 验证算法类型并映射前端参数
+    algorithm_mapping = {
+        'hybrid': 'hybrid',
+        'collaborative': 'collaborative_filtering',
+        'content': 'content_based',
+        'popularity': 'popularity'
+    }
+    
+    algorithm = algorithm_mapping.get(algorithm, 'hybrid')
     
     recommendation_service = RecommendationService()
     recommendations = recommendation_service.get_personalized_recommendations(

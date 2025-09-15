@@ -96,11 +96,11 @@ class RecommendationService:
             # 构建商品特征矩阵
             item_features = self._build_item_feature_matrix()
             
-            # 计算用户偏好向量
-            user_profile = self._build_user_profile(user_id, user_items, item_features)
+            # 计算用户偏好向量和向量化器
+            user_profile, vectorizer = self._build_user_profile(user_id, user_items, item_features)
             
             # 计算相似度并推荐
-            recommendations = self._content_based_recommend(user_profile, item_features, user_items, limit)
+            recommendations = self._content_based_recommend(user_profile, item_features, user_items, limit, vectorizer)
             
             # 记录推荐结果
             self._record_recommendations(user_id, recommendations, 'content_based')
@@ -114,13 +114,8 @@ class RecommendationService:
     def _get_popularity_recommendations(self, user_id: int, limit: int) -> List[Dict]:
         """热门推荐算法"""
         try:
-            # 使用缓存获取热门商品分数
-            cache_key = "popularity_scores"
-            popularity_scores = cache_service.get_or_set(
-                cache_key, 
-                self._calculate_popularity_scores, 
-                timeout=3600  # 缓存1小时
-            )
+            # 直接计算热门商品分数，不使用缓存避免问题
+            popularity_scores = self._calculate_popularity_scores()
             
             # 获取用户已交互的商品
             user_interacted_items = self._get_user_interacted_items(user_id)
@@ -146,10 +141,10 @@ class RecommendationService:
     def _get_hybrid_recommendations(self, user_id: int, limit: int) -> List[Dict]:
         """混合推荐算法"""
         try:
-            # 获取各种算法的推荐结果
-            cf_recommendations = self._get_collaborative_filtering_recommendations(user_id, limit * 2)
-            cb_recommendations = self._get_content_based_recommendations(user_id, limit * 2)
-            pop_recommendations = self._get_popularity_recommendations(user_id, limit * 2)
+            # 获取各种算法的推荐结果（不记录到数据库，避免重复记录）
+            cf_recommendations = self._get_collaborative_filtering_recommendations_internal(user_id, limit * 2)
+            cb_recommendations = self._get_content_based_recommendations_internal(user_id, limit * 2)
+            pop_recommendations = self._get_popularity_recommendations_internal(user_id, limit * 2)
             
             # 混合推荐权重
             weights = {
@@ -171,6 +166,83 @@ class RecommendationService:
         except Exception as e:
             logger.error(f"混合推荐失败: {e}")
             return self._get_popularity_recommendations(user_id, limit)
+    
+    def _get_collaborative_filtering_recommendations_internal(self, user_id: int, limit: int) -> List[Dict]:
+        """协同过滤推荐算法（内部版本，不记录到数据库）"""
+        try:
+            # 获取用户行为数据
+            user_behaviors = self._get_user_behavior_data()
+            if len(user_behaviors) < self.min_interactions:
+                logger.info(f"用户{user_id}行为数据不足，降级到热门推荐")
+                return self._get_popularity_recommendations_internal(user_id, limit)
+            
+            # 构建用户-物品评分矩阵
+            rating_matrix = self._build_rating_matrix(user_behaviors)
+            
+            # 使用SVD进行协同过滤
+            recommendations = self._svd_collaborative_filtering(user_id, rating_matrix, limit)
+            
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"协同过滤推荐失败: {e}")
+            return self._get_popularity_recommendations_internal(user_id, limit)
+    
+    def _get_content_based_recommendations_internal(self, user_id: int, limit: int) -> List[Dict]:
+        """基于内容的推荐算法（内部版本，不记录到数据库）"""
+        try:
+            # 获取用户历史行为
+            user_items = self._get_user_interacted_items(user_id)
+            logger.info(f"用户{user_id}历史行为数据: {len(user_items)}条")
+            if not user_items:
+                logger.info(f"用户{user_id}无历史行为，降级到热门推荐")
+                return self._get_popularity_recommendations_internal(user_id, limit)
+            
+            # 构建商品特征矩阵
+            item_features = self._build_item_feature_matrix()
+            logger.info(f"商品特征矩阵: {len(item_features)}个商品")
+            
+            # 计算用户偏好向量和向量化器
+            user_profile, vectorizer = self._build_user_profile(user_id, user_items, item_features)
+            logger.info(f"用户偏好向量维度: {user_profile.shape}")
+            
+            # 计算相似度并推荐
+            recommendations = self._content_based_recommend(user_profile, item_features, user_items, limit, vectorizer)
+            logger.info(f"内容推荐结果: {len(recommendations)}个")
+            
+            if not recommendations:
+                logger.info("内容推荐无结果，降级到热门推荐")
+                return self._get_popularity_recommendations_internal(user_id, limit)
+            
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"内容推荐失败: {e}")
+            return self._get_popularity_recommendations_internal(user_id, limit)
+    
+    def _get_popularity_recommendations_internal(self, user_id: int, limit: int) -> List[Dict]:
+        """热门推荐算法（内部版本，不记录到数据库）"""
+        try:
+            # 直接计算热门商品分数
+            popularity_scores = self._calculate_popularity_scores()
+            
+            # 获取用户已交互的商品
+            user_interacted_items = self._get_user_interacted_items(user_id)
+            user_interacted_ids = {item['id'] for item in user_interacted_items}
+            
+            # 过滤已交互的商品并排序
+            filtered_items = [
+                item for item in popularity_scores 
+                if item['id'] not in user_interacted_ids
+            ]
+            
+            recommendations = filtered_items[:limit]
+            
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"热门推荐失败: {e}")
+            return []
     
     def _get_user_behavior_data(self) -> List[Dict]:
         """获取用户行为数据"""
@@ -232,9 +304,17 @@ class RecommendationService:
             
             # 获取所有商品ID
             all_items = Item.query.filter(
-                Item.status == 'active',
+                Item.status.in_(['active', 'sold']),
                 Item.audit_status == 'approved'
             ).all()
+            
+            # 如果没有已审核的商品，则查询所有活跃商品
+            if not all_items:
+                all_items = Item.query.filter(Item.status == 'active').all()
+            
+            # 如果还是没有商品，则查询所有商品
+            if not all_items:
+                all_items = Item.query.all()
             
             # 预测用户对所有商品的评分
             predictions = []
@@ -249,7 +329,7 @@ class RecommendationService:
                     'view_count': item.view_count,
                     'created_at': item.created_at,
                     'score': pred.est,
-                    'reason': f'基于相似用户喜好推荐，预测评分: {pred.est:.2f}',
+                    'reason': f'协同过滤推荐，预测评分: {pred.est:.2f}',
                     'main_image': item.get_main_image()
                 })
             
@@ -263,10 +343,19 @@ class RecommendationService:
     
     def _build_item_feature_matrix(self) -> pd.DataFrame:
         """构建商品特征矩阵"""
+        # 放宽查询条件
         items = Item.query.filter(
-            Item.status == 'active',
+            Item.status.in_(['active', 'sold']),
             Item.audit_status == 'approved'
         ).all()
+        
+        # 如果没有已审核的商品，则查询所有活跃商品
+        if not items:
+            items = Item.query.filter(Item.status == 'active').all()
+        
+        # 如果还是没有商品，则查询所有商品
+        if not items:
+            items = Item.query.all()
         
         features = []
         for item in items:
@@ -284,26 +373,29 @@ class RecommendationService:
         
         return pd.DataFrame(features)
     
-    def _build_user_profile(self, user_id: int, user_items: List[Dict], item_features: pd.DataFrame) -> np.ndarray:
+    def _build_user_profile(self, user_id: int, user_items: List[Dict], item_features: pd.DataFrame, vectorizer=None) -> tuple:
         """构建用户偏好向量"""
         # 获取用户交互过的商品特征
         user_item_ids = [item['id'] for item in user_items]
         user_features = item_features[item_features['item_id'].isin(user_item_ids)]
         
         if user_features.empty:
-            return np.zeros(100)  # 返回零向量
+            return np.zeros(100), vectorizer  # 返回零向量
         
         # 使用TF-IDF向量化
-        vectorizer = TfidfVectorizer(max_features=100, stop_words=None)
-        feature_matrix = vectorizer.fit_transform(user_features['feature_text'])
+        if vectorizer is None:
+            vectorizer = TfidfVectorizer(max_features=100, stop_words=None)
+            feature_matrix = vectorizer.fit_transform(user_features['feature_text'])
+        else:
+            feature_matrix = vectorizer.transform(user_features['feature_text'])
         
         # 计算用户偏好向量（平均）
         user_profile = np.mean(feature_matrix.toarray(), axis=0)
         
-        return user_profile
+        return user_profile, vectorizer
     
     def _content_based_recommend(self, user_profile: np.ndarray, item_features: pd.DataFrame, 
-                                user_items: List[Dict], limit: int) -> List[Dict]:
+                                user_items: List[Dict], limit: int, vectorizer=None) -> List[Dict]:
         """基于内容推荐"""
         # 获取用户未交互的商品
         user_item_ids = {item['id'] for item in user_items}
@@ -313,8 +405,11 @@ class RecommendationService:
             return []
         
         # 向量化候选商品
-        vectorizer = TfidfVectorizer(max_features=100, stop_words=None)
-        candidate_matrix = vectorizer.fit_transform(candidate_items['feature_text'])
+        if vectorizer is None:
+            vectorizer = TfidfVectorizer(max_features=100, stop_words=None)
+            candidate_matrix = vectorizer.fit_transform(candidate_items['feature_text'])
+        else:
+            candidate_matrix = vectorizer.transform(candidate_items['feature_text'])
         
         # 计算相似度
         similarities = cosine_similarity([user_profile], candidate_matrix)[0]
@@ -335,7 +430,7 @@ class RecommendationService:
                         'view_count': item.view_count,
                         'created_at': item.created_at,
                         'score': similarity,
-                        'reason': f'基于商品特征相似度推荐，相似度: {similarity:.2f}',
+                        'reason': f'内容推荐，相似度: {similarity:.2f}',
                         'main_image': item.get_main_image()
                     })
         
@@ -345,18 +440,28 @@ class RecommendationService:
     
     def _calculate_popularity_scores(self) -> List[Dict]:
         """计算商品热度分数"""
+        # 放宽查询条件，包含所有状态的商品
         items = Item.query.filter(
-            Item.status == 'active',
+            Item.status.in_(['active', 'sold']),  # 包含已售出的商品
             Item.audit_status == 'approved'
         ).all()
+        
+        # 如果没有已审核的商品，则查询所有活跃商品
+        if not items:
+            items = Item.query.filter(Item.status == 'active').all()
+        
+        # 如果还是没有商品，则查询所有商品
+        if not items:
+            items = Item.query.all()
         
         popularity_scores = []
         for item in items:
             # 计算热度分数
             view_score = item.view_count * 0.1
             like_score = item.like_count * 0.5
-            favorite_score = item.favorite_count * 1.0
-            contact_score = item.contact_count * 0.8
+            # 注意：Item模型中没有favorite_count和contact_count字段，使用默认值
+            favorite_score = 0  # item.favorite_count * 1.0
+            contact_score = 0   # item.contact_count * 0.8
             
             # 时间衰减
             days_ago = (datetime.utcnow() - item.created_at).days
