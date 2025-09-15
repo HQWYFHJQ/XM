@@ -217,23 +217,24 @@
             </div>
             <div class="modal-body text-center">
                 <div class="mb-3">
-                    <h6 id="itemTitle"></h6>
+                    <h6 id="itemTitle" class="mb-2"></h6>
                     <h4 class="text-primary" id="itemPrice"></h4>
                 </div>
                 
-                <div class="alert alert-info">
+                <div class="alert alert-info alert-sm mb-3">
                     <i class="fas fa-info-circle me-2"></i>
-                    请使用微信扫描下方二维码完成支付
+                    推荐使用微信支付
                 </div>
                 
-                <div class="mb-3">
+                <!-- 二维码显示区域 -->
+                <div class="qr-code-container mb-3">
                     <img src="{{ url_for('static', filename='images/wechat_qr.png') }}" 
-                         class="img-fluid" alt="微信收款码" style="max-width: 200px;">
+                         class="qr-code-image" alt="微信收款码">
                 </div>
                 
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    支付完成后请点击下方按钮确认，系统将通知卖家发货
+                <div class="d-flex align-items-center justify-content-center mb-3">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <span class="text-success fw-bold">微信支付</span>
                 </div>
             </div>
             <div class="modal-footer">
@@ -274,8 +275,124 @@
 
 {% block extra_css %}
 <style>
+/* 版本: 2025-09-15-16:30 - 强制刷新缓存 */
 .whitespace-pre-line {
     white-space: pre-line;
+}
+
+/* 支付弹窗样式优化 */
+#paymentModal .modal-dialog {
+    max-width: 800px !important;
+    width: 800px !important;
+    margin: 1.75rem auto !important;
+    position: relative !important;
+    transform: none !important;
+}
+
+/* 支付成功弹窗样式优化 */
+#paymentSuccessModal .modal-dialog {
+    max-width: 800px !important;
+    width: 800px !important;
+    margin: 1.75rem auto !important;
+    position: relative !important;
+    transform: none !important;
+}
+
+#paymentModal .modal-content {
+    border-radius: 12px !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+}
+
+#paymentModal .modal-body {
+    padding: 1rem 1.25rem;
+}
+
+#paymentModal .modal-header {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+#paymentModal .modal-footer {
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid #dee2e6;
+}
+
+/* 支付成功弹窗内容样式优化 */
+#paymentSuccessModal .modal-content {
+    border-radius: 12px !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+}
+
+#paymentSuccessModal .modal-body {
+    padding: 1rem 1.25rem;
+}
+
+#paymentSuccessModal .modal-header {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+#paymentSuccessModal .modal-footer {
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid #dee2e6;
+}
+
+.qr-code-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px;
+    border: 2px dashed #dee2e6;
+}
+
+.qr-code-image {
+    max-width: 560px;
+    max-height: 700px;
+    width: auto;
+    height: auto;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 响应式调整 */
+@media (max-width: 992px) {
+    #paymentModal .modal-dialog {
+        max-width: 95% !important;
+        width: 95% !important;
+        margin: 10px auto !important;
+    }
+    
+    .qr-code-image {
+        max-width: 400px;
+        max-height: 500px;
+    }
+}
+
+@media (max-width: 576px) {
+    #paymentModal .modal-dialog {
+        max-width: 90% !important;
+        width: 90% !important;
+        margin: 10px auto !important;
+    }
+    
+    .qr-code-image {
+        max-width: 300px;
+        max-height: 380px;
+    }
+}
+
+/* 小屏幕优化 */
+@media (max-width: 480px) {
+    .qr-code-image {
+        max-width: 250px;
+        max-height: 320px;
+    }
+    
+    .qr-code-container {
+        padding: 10px;
+    }
 }
 </style>
 {% endblock %}
