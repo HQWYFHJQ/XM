@@ -109,22 +109,63 @@ def transactions():
     page = request.args.get('page', 1, type=int)
     status = request.args.get('status', 'all')
     search = request.args.get('search', '')
+    search_type = request.args.get('search_type', 'all')  # all, item, buyer, seller
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    sort_by = request.args.get('sort_by', 'created_at')  # id, created_at
+    sort_order = request.args.get('sort_order', 'desc')  # asc, desc
     
-    query = Transaction.query
+    # 使用别名避免表名冲突
+    from sqlalchemy.orm import aliased
+    buyer_alias = aliased(User)
+    seller_alias = aliased(User)
+    
+    query = Transaction.query.join(Item).join(buyer_alias, Transaction.buyer_id == buyer_alias.id).join(seller_alias, Transaction.seller_id == seller_alias.id)
     
     # 状态筛选
     if status != 'all':
-        query = query.filter_by(status=status)
+        query = query.filter(Transaction.status == status)
     
-    # 搜索
+    # 搜索功能
     if search:
-        query = query.join(Item).filter(
-            Item.title.contains(search) |
-            Transaction.buyer.has(User.username.contains(search)) |
-            Transaction.seller.has(User.username.contains(search))
-        )
+        if search_type == 'all' or search_type == 'item':
+            query = query.filter(Item.title.contains(search))
+        elif search_type == 'buyer':
+            query = query.filter(buyer_alias.username.contains(search))
+        elif search_type == 'seller':
+            query = query.filter(seller_alias.username.contains(search))
     
-    transactions = query.order_by(Transaction.created_at.desc()).paginate(
+    # 时间范围筛选
+    if start_date:
+        try:
+            start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(Transaction.created_at >= start_datetime)
+        except ValueError:
+            pass
+    
+    if end_date:
+        try:
+            end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
+            # 添加一天到结束日期以包含整天
+            from datetime import timedelta
+            end_datetime += timedelta(days=1)
+            query = query.filter(Transaction.created_at < end_datetime)
+        except ValueError:
+            pass
+    
+    # 排序
+    if sort_by == 'id':
+        if sort_order == 'asc':
+            query = query.order_by(Transaction.id.asc())
+        else:
+            query = query.order_by(Transaction.id.desc())
+    else:  # created_at
+        if sort_order == 'asc':
+            query = query.order_by(Transaction.created_at.asc())
+        else:
+            query = query.order_by(Transaction.created_at.desc())
+    
+    transactions = query.paginate(
         page=page, per_page=20, error_out=False
     )
     
@@ -153,6 +194,11 @@ def transactions():
                          transactions=transactions,
                          current_status=status,
                          current_search=search,
+                         current_search_type=search_type,
+                         current_start_date=start_date,
+                         current_end_date=end_date,
+                         current_sort_by=sort_by,
+                         current_sort_order=sort_order,
                          stats=stats,
                          audit_counts=get_audit_counts())
 

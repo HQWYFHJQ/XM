@@ -118,10 +118,11 @@
     <!-- 筛选和搜索 -->
     <div class="card shadow mb-4">
         <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">筛选条件</h6>
+            <h6 class="m-0 font-weight-bold text-primary">筛选和搜索</h6>
         </div>
         <div class="card-body">
             <form method="GET" class="row g-3">
+                <!-- 第一行：状态和搜索类型 -->
                 <div class="col-md-3">
                     <label for="status" class="form-label">交易状态</label>
                     <select class="form-select" id="status" name="status">
@@ -134,23 +135,57 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label for="role" class="form-label">角色筛选</label>
-                    <select class="form-select" id="role" name="role">
-                        <option value="all" {% if current_role == 'all' %}selected{% endif %}>全部角色</option>
-                        <option value="buyer" {% if current_role == 'buyer' %}selected{% endif %}>作为买家</option>
-                        <option value="seller" {% if current_role == 'seller' %}selected{% endif %}>作为卖家</option>
+                    <label for="search_type" class="form-label">搜索类型</label>
+                    <select class="form-select" id="search_type" name="search_type">
+                        <option value="all" {% if current_search_type == 'all' %}selected{% endif %}>全部</option>
+                        <option value="item" {% if current_search_type == 'item' %}selected{% endif %}>商品名称</option>
+                        <option value="buyer" {% if current_search_type == 'buyer' %}selected{% endif %}>买家</option>
+                        <option value="seller" {% if current_search_type == 'seller' %}selected{% endif %}>卖家</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="search" class="form-label">搜索关键词</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ current_search }}" placeholder="请输入搜索关键词">
+                </div>
+                
+                <!-- 第二行：时间范围和排序 -->
+                <div class="col-md-3">
+                    <label for="start_date" class="form-label">开始日期</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" 
+                           value="{{ current_start_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date" class="form-label">结束日期</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" 
+                           value="{{ current_end_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="sort_by" class="form-label">排序字段</label>
+                    <select class="form-select" id="sort_by" name="sort_by">
+                        <option value="created_at" {% if current_sort_by == 'created_at' %}selected{% endif %}>创建时间</option>
+                        <option value="id" {% if current_sort_by == 'id' %}selected{% endif %}>交易ID</option>
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">&nbsp;</label>
-                    <div>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-search me-2"></i>筛选
-                        </button>
-                        <a href="{{ url_for('admin.transactions') }}" class="btn btn-secondary">
-                            <i class="fas fa-undo me-2"></i>重置
-                        </a>
-                    </div>
+                    <label for="sort_order" class="form-label">排序顺序</label>
+                    <select class="form-select" id="sort_order" name="sort_order">
+                        <option value="desc" {% if current_sort_order == 'desc' %}selected{% endif %}>降序</option>
+                        <option value="asc" {% if current_sort_order == 'asc' %}selected{% endif %}>升序</option>
+                    </select>
+                </div>
+                
+                <!-- 第三行：按钮 -->
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>搜索
+                    </button>
+                    <a href="{{ url_for('admin.transactions') }}" class="btn btn-secondary">
+                        <i class="fas fa-undo me-2"></i>重置
+                    </a>
+                    <button type="button" class="btn btn-info" onclick="exportResults()">
+                        <i class="fas fa-download me-2"></i>导出结果
+                    </button>
                 </div>
             </form>
         </div>
@@ -167,13 +202,29 @@
                 <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                     <thead>
                         <tr>
-                            <th>交易ID</th>
+                            <th>
+                                <a href="{{ url_for('admin.transactions', sort_by='id', sort_order='asc' if current_sort_by == 'id' and current_sort_order == 'desc' else 'desc', **request.args) }}" 
+                                   class="text-decoration-none text-dark">
+                                    交易ID
+                                    {% if current_sort_by == 'id' %}
+                                        <i class="fas fa-sort-{{ 'up' if current_sort_order == 'asc' else 'down' }}"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
                             <th>商品信息</th>
                             <th>买家</th>
                             <th>卖家</th>
                             <th>价格</th>
                             <th>状态</th>
-                            <th>创建时间</th>
+                            <th>
+                                <a href="{{ url_for('admin.transactions', sort_by='created_at', sort_order='asc' if current_sort_by == 'created_at' and current_sort_order == 'desc' else 'desc', **request.args) }}" 
+                                   class="text-decoration-none text-dark">
+                                    创建时间
+                                    {% if current_sort_by == 'created_at' %}
+                                        <i class="fas fa-sort-{{ 'up' if current_sort_order == 'asc' else 'down' }}"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
                             <th>操作</th>
                         </tr>
                     </thead>
@@ -275,7 +326,7 @@
                 <ul class="pagination justify-content-center">
                     {% if transactions.has_prev %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('admin.transactions', page=transactions.prev_num, status=current_status, role=current_role) }}">
+                        <a class="page-link" href="{{ url_for('admin.transactions', page=transactions.prev_num, status=current_status, search=current_search, search_type=current_search_type, start_date=current_start_date, end_date=current_end_date, sort_by=current_sort_by, sort_order=current_sort_order) }}">
                             上一页
                         </a>
                     </li>
@@ -285,7 +336,7 @@
                         {% if page_num %}
                             {% if page_num != transactions.page %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('admin.transactions', page=page_num, status=current_status, role=current_role) }}">
+                                <a class="page-link" href="{{ url_for('admin.transactions', page=page_num, status=current_status, search=current_search, search_type=current_search_type, start_date=current_start_date, end_date=current_end_date, sort_by=current_sort_by, sort_order=current_sort_order) }}">
                                     {{ page_num }}
                                 </a>
                             </li>
@@ -303,7 +354,7 @@
                     
                     {% if transactions.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('admin.transactions', page=transactions.next_num, status=current_status, role=current_role) }}">
+                        <a class="page-link" href="{{ url_for('admin.transactions', page=transactions.next_num, status=current_status, search=current_search, search_type=current_search_type, start_date=current_start_date, end_date=current_end_date, sort_by=current_sort_by, sort_order=current_sort_order) }}">
                             下一页
                         </a>
                     </li>
@@ -490,6 +541,16 @@ function processRefund() {
         console.error('Error:', error);
         alert('退款处理失败，请重试');
     });
+}
+
+function exportResults() {
+    // 获取当前搜索参数
+    const params = new URLSearchParams(window.location.search);
+    params.set('export', 'true');
+    
+    // 创建下载链接
+    const exportUrl = window.location.pathname + '?' + params.toString();
+    window.open(exportUrl, '_blank');
 }
 </script>
 {% endblock %}
