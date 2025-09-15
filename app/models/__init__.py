@@ -6,5 +6,6 @@ from .transaction import Transaction
 from .audit import UserAudit, ItemAudit, UserProfileAudit, ItemProfileAudit, UserAvatarAudit, ItemImageAudit
 from .message import Conversation, Message, MessageNotification, ChatSession, MessageCleanupLog
 from .announcement import Announcement
+from .announcement_read import AnnouncementRead
 
-__all__ = ['User', 'Item', 'Category', 'UserBehavior', 'Recommendation', 'Transaction', 'UserAudit', 'ItemAudit', 'UserProfileAudit', 'ItemProfileAudit', 'UserAvatarAudit', 'ItemImageAudit', 'Conversation', 'Message', 'MessageNotification', 'ChatSession', 'MessageCleanupLog', 'Announcement']
+__all__ = ['User', 'Item', 'Category', 'UserBehavior', 'Recommendation', 'Transaction', 'UserAudit', 'ItemAudit', 'UserProfileAudit', 'ItemProfileAudit', 'UserAvatarAudit', 'ItemImageAudit', 'Conversation', 'Message', 'MessageNotification', 'ChatSession', 'MessageCleanupLog', 'Announcement', 'AnnouncementRead']

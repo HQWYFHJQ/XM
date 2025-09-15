@@ -1317,12 +1317,20 @@ def announcements():
     announcement_type = request.args.get('type', 'all')
     priority = request.args.get('priority', 'all')
     search = request.args.get('search', '')
+    sort_by = request.args.get('sort_by', 'created_at')
+    sort_order = request.args.get('sort_order', 'desc')
     
     announcement_service = AnnouncementService()
     announcements = announcement_service.get_announcements(
         page=page, per_page=20, status=status, 
-        announcement_type=announcement_type, priority=priority, search=search
+        announcement_type=announcement_type, priority=priority, search=search,
+        sort_by=sort_by, sort_order=sort_order
     )
+    
+    # 为每个公告添加推送状态和已读率统计
+    for announcement in announcements.items:
+        announcement.push_status = announcement_service.get_announcement_push_status(announcement.id)
+        announcement.read_stats = announcement_service.get_announcement_read_stats(announcement.id)
     
     return render_template('admin/announcements.html',
                          announcements=announcements,
@@ -1330,6 +1338,8 @@ def announcements():
                          current_type=announcement_type,
                          current_priority=priority,
                          current_search=search,
+                         current_sort_by=sort_by,
+                         current_sort_order=sort_order,
                          audit_counts=get_audit_counts())
 
 @admin_bp.route('/announcements/preview', methods=['POST'])

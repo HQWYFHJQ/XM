@@ -11,10 +11,17 @@ class AnnouncementService:
     
     def create_announcement(self, title, content, announcement_type='system', 
                           priority='normal', is_pinned=False, start_time=None, 
-                          end_time=None, created_by=None):
+                          end_time=None, created_by=None, use_min_id=True):
         """创建公告"""
         try:
+            # 如果启用最小可用ID分配
+            if use_min_id:
+                announcement_id = self._get_next_available_id()
+            else:
+                announcement_id = None
+            
             announcement = Announcement(
+                id=announcement_id,
                 title=title,
                 content=content,
                 type=announcement_type,
@@ -69,6 +76,12 @@ class AnnouncementService:
         """删除公告"""
         try:
             announcement = Announcement.query.get_or_404(announcement_id)
+            
+            # 先删除所有相关的已读记录
+            from app.models.announcement_read import AnnouncementRead
+            AnnouncementRead.query.filter_by(announcement_id=announcement_id).delete()
+            
+            # 再删除公告
             db.session.delete(announcement)
             db.session.commit()
             
@@ -124,7 +137,8 @@ class AnnouncementService:
             }
     
     def get_announcements(self, page=1, per_page=20, status='all', 
-                         announcement_type='all', priority='all', search=''):
+                         announcement_type='all', priority='all', search='', 
+                         sort_by='created_at', sort_order='desc'):
         """获取公告列表（分页）"""
         query = Announcement.query
         
@@ -149,12 +163,29 @@ class AnnouncementService:
                 Announcement.content.contains(search)
             )
         
-        # 排序：置顶 > 优先级 > 创建时间
-        query = query.order_by(
-            Announcement.is_pinned.desc(),
-            Announcement.priority.desc(),
-            Announcement.created_at.desc()
-        )
+        # 排序
+        if sort_by == 'id':
+            if sort_order == 'asc':
+                query = query.order_by(Announcement.id.asc())
+            else:
+                query = query.order_by(Announcement.id.desc())
+        elif sort_by == 'created_at':
+            if sort_order == 'asc':
+                query = query.order_by(Announcement.created_at.asc())
+            else:
+                query = query.order_by(Announcement.created_at.desc())
+        elif sort_by == 'priority':
+            if sort_order == 'asc':
+                query = query.order_by(Announcement.priority.asc())
+            else:
+                query = query.order_by(Announcement.priority.desc())
+        else:
+            # 默认排序：置顶 > 优先级 > 创建时间
+            query = query.order_by(
+                Announcement.is_pinned.desc(),
+                Announcement.priority.desc(),
+                Announcement.created_at.desc()
+            )
         
         return query.paginate(
             page=page, per_page=per_page, error_out=False
@@ -254,3 +285,76 @@ class AnnouncementService:
             'message': '没有发现过期公告',
             'count': 0
         }
+    
+    def _get_next_available_id(self):
+        """获取下一个可用的最小ID"""
+        # 获取所有已使用的ID
+        used_ids = set(db.session.query(Announcement.id).all())
+        used_ids = {id_tuple[0] for id_tuple in used_ids}
+        
+        # 从1开始查找第一个未使用的ID
+        next_id = 1
+        while next_id in used_ids:
+            next_id += 1
+        
+        return next_id
+    
+    def get_announcement_read_stats(self, announcement_id):
+        """获取公告的已读统计"""
+        from app.models.announcement_read import AnnouncementRead
+        from app.models import User
+        
+        # 获取总用户数
+        total_users = User.query.count()
+        
+        # 获取已读用户数
+        read_count = AnnouncementRead.query.filter_by(announcement_id=announcement_id).count()
+        
+        # 计算已读率
+        read_rate = (read_count / total_users * 100) if total_users > 0 else 0
+        
+        return {
+            'total_users': total_users,
+            'read_count': read_count,
+            'unread_count': total_users - read_count,
+            'read_rate': round(read_rate, 2)
+        }
+    
+    def get_announcement_push_status(self, announcement_id):
+        """获取公告的推送状态"""
+        announcement = Announcement.query.get(announcement_id)
+        if not announcement:
+            return None
+        
+        now = get_beijing_utc_now()
+        
+        # 检查是否已推送（创建时间小于当前时间）
+        is_pushed = announcement.created_at <= now
+        
+        # 检查是否在有效期内
+        is_valid = True
+        if announcement.start_time and announcement.start_time > now:
+            is_valid = False
+        if announcement.end_time and announcement.end_time < now:
+            is_valid = False
+        
+        # 检查是否启用
+        is_active = announcement.is_active
+        
+        return {
+            'is_pushed': is_pushed,
+            'is_valid': is_valid,
+            'is_active': is_active,
+            'status': self._get_push_status_text(is_pushed, is_valid, is_active)
+        }
+    
+    def _get_push_status_text(self, is_pushed, is_valid, is_active):
+        """获取推送状态文本"""
+        if not is_active:
+            return "已禁用"
+        elif not is_valid:
+            return "已过期"
+        elif not is_pushed:
+            return "待推送"
+        else:
+            return "已推送"

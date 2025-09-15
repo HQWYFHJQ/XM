@@ -42,10 +42,25 @@
                     <option value="urgent" {% if current_priority == 'urgent' %}selected{% endif %}>紧急</option>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="search" class="form-label">搜索</label>
                 <input type="text" name="search" id="search" class="form-control" 
                        placeholder="搜索标题或内容" value="{{ current_search }}">
+            </div>
+            <div class="col-md-2">
+                <label for="sort_by" class="form-label">排序字段</label>
+                <select name="sort_by" id="sort_by" class="form-select">
+                    <option value="created_at" {% if current_sort_by == 'created_at' %}selected{% endif %}>创建时间</option>
+                    <option value="id" {% if current_sort_by == 'id' %}selected{% endif %}>ID</option>
+                    <option value="priority" {% if current_sort_by == 'priority' %}selected{% endif %}>优先级</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="sort_order" class="form-label">排序顺序</label>
+                <select name="sort_order" id="sort_order" class="form-select">
+                    <option value="desc" {% if current_sort_order == 'desc' %}selected{% endif %}>降序</option>
+                    <option value="asc" {% if current_sort_order == 'asc' %}selected{% endif %}>升序</option>
+                </select>
             </div>
             <div class="col-12">
                 <button type="submit" class="btn btn-outline-primary">
@@ -71,13 +86,15 @@
                     <thead class="table-light">
                         <tr>
                             <th width="5%">ID</th>
-                            <th width="25%">标题</th>
-                            <th width="10%">类型</th>
-                            <th width="10%">优先级</th>
-                            <th width="10%">状态</th>
-                            <th width="10%">置顶</th>
-                            <th width="15%">创建时间</th>
-                            <th width="15%">操作</th>
+                            <th width="20%">标题</th>
+                            <th width="8%">类型</th>
+                            <th width="8%">优先级</th>
+                            <th width="8%">状态</th>
+                            <th width="8%">置顶</th>
+                            <th width="10%">推送状态</th>
+                            <th width="10%">已读率</th>
+                            <th width="12%">创建时间</th>
+                            <th width="11%">操作</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -122,6 +139,41 @@
                                 {% endif %}
                             </td>
                             <td>
+                                {% if announcement.push_status %}
+                                    {% set status = announcement.push_status.status %}
+                                    {% if status == '已推送' %}
+                                        <span class="badge bg-success">{{ status }}</span>
+                                    {% elif status == '待推送' %}
+                                        <span class="badge bg-warning">{{ status }}</span>
+                                    {% elif status == '已过期' %}
+                                        <span class="badge bg-danger">{{ status }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ status }}</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-secondary">未知</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if announcement.read_stats %}
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                            <div class="progress-bar" role="progressbar" 
+                                                 style="width: {{ announcement.read_stats.read_rate }}%"
+                                                 aria-valuenow="{{ announcement.read_stats.read_rate }}" 
+                                                 aria-valuemin="0" aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">{{ announcement.read_stats.read_rate }}%</small>
+                                    </div>
+                                    <small class="text-muted">
+                                        {{ announcement.read_stats.read_count }}/{{ announcement.read_stats.total_users }}
+                                    </small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
                                 <div>{{ announcement.created_at | beijing_datetime }}</div>
                                 <small class="text-muted">by {{ announcement.creator.username }}</small>
                             </td>
@@ -158,7 +210,7 @@
                     <ul class="pagination pagination-sm justify-content-center mb-0">
                         {% if announcements.has_prev %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('admin.announcements', page=announcements.prev_num, status=current_status, type=current_type, priority=current_priority, search=current_search) }}">上一页</a>
+                                <a class="page-link" href="{{ url_for('admin.announcements', page=announcements.prev_num, status=current_status, type=current_type, priority=current_priority, search=current_search, sort_by=current_sort_by, sort_order=current_sort_order) }}">上一页</a>
                             </li>
                         {% endif %}
                         
@@ -166,7 +218,7 @@
                             {% if page_num %}
                                 {% if page_num != announcements.page %}
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ url_for('admin.announcements', page=page_num, status=current_status, type=current_type, priority=current_priority, search=current_search) }}">{{ page_num }}</a>
+                                        <a class="page-link" href="{{ url_for('admin.announcements', page=page_num, status=current_status, type=current_type, priority=current_priority, search=current_search, sort_by=current_sort_by, sort_order=current_sort_order) }}">{{ page_num }}</a>
                                     </li>
                                 {% else %}
                                     <li class="page-item active">
@@ -182,7 +234,7 @@
                         
                         {% if announcements.has_next %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('admin.announcements', page=announcements.next_num, status=current_status, type=current_type, priority=current_priority, search=current_search) }}">下一页</a>
+                                <a class="page-link" href="{{ url_for('admin.announcements', page=announcements.next_num, status=current_status, type=current_type, priority=current_priority, search=current_search, sort_by=current_sort_by, sort_order=current_sort_order) }}">下一页</a>
                             </li>
                         {% endif %}
                     </ul>

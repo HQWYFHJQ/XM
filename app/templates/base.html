@@ -412,7 +412,8 @@
                         <!-- 欢迎消息 -->
                         <div class="ai-welcome-message">
                             <h6>👋 您好！我是智能推荐助手</h6>
-                            <p>我可以根据您的喜好为您推荐合适的商品，或者回答您关于商品的问题</p>
+                            <p>我可以根据您的喜好为您推荐合适的商品，或者回答您关于商品的问题
+                            （当前服务输出的内容均由人工智能模型生成，其生成内容的准确性和完整性无法保证，不代表我们的态度或观点。）</p>
                         </div>
                         
                         <!-- AI初始消息 -->
@@ -645,7 +646,296 @@
     </script>
     {% endif %}
     
+    <!-- 公告弹窗功能 -->
+    <script>
+    // 公告弹窗管理器
+    class AnnouncementPopupManager {
+        constructor() {
+            this.popup = document.getElementById('announcementPopup');
+            this.announcements = [];
+            this.currentIndex = 0;
+            this.isVisible = false;
+            
+            this.init();
+        }
+        
+        init() {
+            // 绑定事件
+            this.bindEvents();
+            
+            // 检查是否有未读公告
+            this.checkUnreadAnnouncements();
+        }
+        
+        bindEvents() {
+            // 关闭按钮
+            document.getElementById('popupCloseBtn').addEventListener('click', () => this.hide());
+            document.getElementById('closePopupBtn').addEventListener('click', () => this.hide());
+            
+            // 标记已读
+            document.getElementById('markReadBtn').addEventListener('click', () => this.markCurrentAsRead());
+            document.getElementById('markAllReadBtn').addEventListener('click', () => this.markAllAsRead());
+            
+            // 导航按钮
+            document.getElementById('prevBtn').addEventListener('click', () => this.showPrevious());
+            document.getElementById('nextBtn').addEventListener('click', () => this.showNext());
+            
+            // 点击遮罩层关闭
+            this.popup.addEventListener('click', (e) => {
+                if (e.target === this.popup) {
+                    this.hide();
+                }
+            });
+            
+            // ESC键关闭
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && this.isVisible) {
+                    this.hide();
+                }
+            });
+        }
+        
+        async checkUnreadAnnouncements() {
+            try {
+                const response = await fetch('/api/announcements/check-login');
+                const data = await response.json();
+                
+                if (data.success && data.has_popup) {
+                    this.announcements = data.popup_announcements;
+                    this.currentIndex = 0;
+                    this.show();
+                }
+            } catch (error) {
+                console.error('检查未读公告失败:', error);
+            }
+        }
+        
+        show() {
+            if (this.announcements.length === 0) return;
+            
+            this.updateContent();
+            this.updateNavigation();
+            this.popup.classList.add('show');
+            this.isVisible = true;
+            
+            // 禁用页面滚动
+            document.body.style.overflow = 'hidden';
+        }
+        
+        hide() {
+            this.popup.classList.remove('show');
+            this.isVisible = false;
+            
+            // 恢复页面滚动
+            document.body.style.overflow = '';
+        }
+        
+        updateContent() {
+            const announcement = this.announcements[this.currentIndex];
+            if (!announcement) return;
+            
+            // 更新标题
+            document.getElementById('popupTitle').textContent = announcement.title;
+            
+            // 更新优先级
+            const priorityEl = document.getElementById('popupPriority');
+            priorityEl.textContent = this.getPriorityText(announcement.priority);
+            priorityEl.className = `announcement-priority ${announcement.priority}`;
+            
+            // 更新时间
+            const timeEl = document.getElementById('popupTime');
+            timeEl.textContent = this.formatTime(announcement.created_at);
+            
+            // 更新内容
+            const contentEl = document.getElementById('popupContent');
+            contentEl.innerHTML = this.formatContent(announcement.content);
+            
+            // 更新指示器
+            const indicatorEl = document.getElementById('popupIndicator');
+            indicatorEl.textContent = `第 ${this.currentIndex + 1} 则，共 ${this.announcements.length} 则`;
+        }
+        
+        updateNavigation() {
+            const navEl = document.getElementById('popupNav');
+            const dotsEl = document.getElementById('popupDots');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            if (this.announcements.length > 1) {
+                navEl.style.display = 'flex';
+                
+                // 更新导航按钮状态
+                prevBtn.disabled = this.currentIndex === 0;
+                nextBtn.disabled = this.currentIndex === this.announcements.length - 1;
+                
+                // 更新指示点
+                dotsEl.innerHTML = '';
+                for (let i = 0; i < this.announcements.length; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = `announcement-dot ${i === this.currentIndex ? 'active' : ''}`;
+                    dot.addEventListener('click', () => this.goToAnnouncement(i));
+                    dotsEl.appendChild(dot);
+                }
+            } else {
+                navEl.style.display = 'none';
+            }
+        }
+        
+        showPrevious() {
+            if (this.currentIndex > 0) {
+                this.currentIndex--;
+                this.updateContent();
+                this.updateNavigation();
+            }
+        }
+        
+        showNext() {
+            if (this.currentIndex < this.announcements.length - 1) {
+                this.currentIndex++;
+                this.updateContent();
+                this.updateNavigation();
+            }
+        }
+        
+        goToAnnouncement(index) {
+            if (index >= 0 && index < this.announcements.length) {
+                this.currentIndex = index;
+                this.updateContent();
+                this.updateNavigation();
+            }
+        }
+        
+        async markCurrentAsRead() {
+            const announcement = this.announcements[this.currentIndex];
+            if (!announcement) return;
+            
+            try {
+                const response = await fetch(`/api/announcements/${announcement.id}/mark-read`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    // 从列表中移除已读公告
+                    this.announcements.splice(this.currentIndex, 1);
+                    
+                    if (this.announcements.length === 0) {
+                        this.hide();
+                    } else {
+                        // 调整当前索引
+                        if (this.currentIndex >= this.announcements.length) {
+                            this.currentIndex = this.announcements.length - 1;
+                        }
+                        this.updateContent();
+                        this.updateNavigation();
+                    }
+                }
+            } catch (error) {
+                console.error('标记已读失败:', error);
+            }
+        }
+        
+        async markAllAsRead() {
+            try {
+                const response = await fetch('/api/announcements/mark-all-read', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    this.hide();
+                }
+            } catch (error) {
+                console.error('标记全部已读失败:', error);
+            }
+        }
+        
+        getPriorityText(priority) {
+            const priorityMap = {
+                'urgent': '紧急',
+                'high': '重要',
+                'normal': '普通',
+                'low': '低'
+            };
+            return priorityMap[priority] || '普通';
+        }
+        
+        formatTime(timeStr) {
+            const date = new Date(timeStr);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) { // 1分钟内
+                return '刚刚';
+            } else if (diff < 3600000) { // 1小时内
+                return `${Math.floor(diff / 60000)}分钟前`;
+            } else if (diff < 86400000) { // 1天内
+                return `${Math.floor(diff / 3600000)}小时前`;
+            } else {
+                return date.toLocaleDateString();
+            }
+        }
+        
+        formatContent(content) {
+            // 简单的Markdown渲染（可以后续集成更完整的Markdown解析器）
+            return content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+        }
+    }
+    
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        // 只有登录用户才初始化弹窗管理器
+        {% if current_user.is_authenticated %}
+        new AnnouncementPopupManager();
+        {% endif %}
+    });
+    </script>
+    
     {% block extra_js %}{% endblock %}
+    
+    <!-- 公告弹窗 -->
+    <div id="announcementPopup" class="announcement-popup-overlay">
+        <div class="announcement-popup">
+            <div class="announcement-popup-header">
+                <h3 class="announcement-popup-title" id="popupTitle">系统公告</h3>
+                <button class="announcement-popup-close" id="popupCloseBtn">&times;</button>
+            </div>
+            <div class="announcement-popup-body">
+                <div class="announcement-popup-meta">
+                    <span class="announcement-priority" id="popupPriority">normal</span>
+                    <span id="popupTime"></span>
+                </div>
+                <div class="announcement-popup-content" id="popupContent">
+                    <!-- 公告内容将在这里动态加载 -->
+                </div>
+                <!-- 多公告导航 -->
+                <div class="announcement-popup-nav" id="popupNav" style="display: none;">
+                    <button class="announcement-nav-btn" id="prevBtn">上一则</button>
+                    <div id="popupDots"></div>
+                    <button class="announcement-nav-btn" id="nextBtn">下一则</button>
+                </div>
+            </div>
+            <div class="announcement-popup-footer">
+                <div class="announcement-popup-indicator" id="popupIndicator">
+                    <!-- 公告指示器 -->
+                </div>
+                <div class="announcement-popup-actions">
+                    <button class="btn-announcement btn-mark-read" id="markReadBtn">标记已读</button>
+                    <button class="btn-announcement btn-mark-all-read" id="markAllReadBtn">全部已读</button>
+                    <button class="btn-announcement btn-close-popup" id="closePopupBtn">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <style>
     /* Markdown样式 */
@@ -730,6 +1020,249 @@
 
     .announcement-content a:hover {
         text-decoration: underline;
+    }
+
+    /* 公告弹窗样式 */
+    .announcement-popup-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .announcement-popup-overlay.show {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .announcement-popup {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        max-width: 800px;
+        width: 85%;
+        max-height: 85vh;
+        overflow: hidden;
+        transform: scale(0.8);
+        transition: transform 0.3s ease;
+    }
+
+    .announcement-popup-overlay.show .announcement-popup {
+        transform: scale(1);
+    }
+
+    .announcement-popup-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        position: relative;
+    }
+
+    .announcement-popup-title {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin: 0;
+        padding-right: 40px;
+    }
+
+    .announcement-popup-close {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 50%;
+        width: 35px;
+        height: 35px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s ease;
+    }
+
+    .announcement-popup-close:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .announcement-popup-body {
+        padding: 25px;
+        max-height: 65vh;
+        overflow-y: auto;
+    }
+    
+    /* 自定义滚动条样式 */
+    .announcement-popup-body::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .announcement-popup-body::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    
+    .announcement-popup-body::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+    }
+    
+    .announcement-popup-body::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+
+    .announcement-popup-content {
+        line-height: 1.7;
+        color: #333;
+        font-size: 1.1rem;
+    }
+
+    .announcement-popup-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .announcement-priority {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .announcement-priority.urgent {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .announcement-priority.high {
+        background-color: #fd7e14;
+        color: white;
+    }
+
+    .announcement-priority.normal {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .announcement-priority.low {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .announcement-popup-footer {
+        padding: 15px 20px;
+        background-color: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .announcement-popup-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-announcement {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    .btn-mark-read {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-mark-read:hover {
+        background-color: #0056b3;
+    }
+
+    .btn-mark-all-read {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .btn-mark-all-read:hover {
+        background-color: #1e7e34;
+    }
+
+    .btn-close-popup {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-close-popup:hover {
+        background-color: #545b62;
+    }
+
+    .announcement-popup-indicator {
+        font-size: 0.8rem;
+        color: #666;
+    }
+
+    /* 多公告指示器 */
+    .announcement-popup-nav {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .announcement-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #dee2e6;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+    .announcement-dot.active {
+        background-color: #007bff;
+    }
+
+    .announcement-nav-btn {
+        background: none;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        color: #666;
+        transition: all 0.2s ease;
+    }
+
+    .announcement-nav-btn:hover {
+        background-color: #f8f9fa;
+        border-color: #007bff;
+        color: #007bff;
+    }
+
+    .announcement-nav-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
     </style>
 </body>
