@@ -76,7 +76,7 @@
                         <h6 class="card-title mb-0">
                             <a href="{{ url_for('main.item_detail', item_id=transaction.item_id) }}" 
                                class="text-decoration-none" target="_blank">
-                                {{ transaction.item_title[:30] }}{% if transaction.item_title|length > 30 %}...{% endif %}
+                                {{ transaction.item.title[:30] }}{% if transaction.item.title|length > 30 %}...{% endif %}
                             </a>
                         </h6>
                         <span class="badge 
