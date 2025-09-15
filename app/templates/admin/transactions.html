@@ -1,0 +1,495 @@
+{% extends "admin/base.html" %}
+
+{% block title %}交易管理 - 管理后台{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-exchange-alt me-2"></i>交易管理
+        </h1>
+        <div>
+            <a href="{{ url_for('admin.export_transactions') }}" class="btn btn-success">
+                <i class="fas fa-download me-2"></i>导出数据
+            </a>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">总交易数</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exchange-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">待支付</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.pending }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">已支付</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.paid }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-credit-card fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="card border-left-secondary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">已发货</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.shipped }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-truck fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">已完成</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.completed }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">已取消</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.cancelled }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选和搜索 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">筛选条件</h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label for="status" class="form-label">交易状态</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="all" {% if current_status == 'all' %}selected{% endif %}>全部状态</option>
+                        <option value="pending" {% if current_status == 'pending' %}selected{% endif %}>待支付</option>
+                        <option value="paid" {% if current_status == 'paid' %}selected{% endif %}>已支付</option>
+                        <option value="shipped" {% if current_status == 'shipped' %}selected{% endif %}>已发货</option>
+                        <option value="completed" {% if current_status == 'completed' %}selected{% endif %}>已完成</option>
+                        <option value="cancelled" {% if current_status == 'cancelled' %}selected{% endif %}>已取消</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="role" class="form-label">角色筛选</label>
+                    <select class="form-select" id="role" name="role">
+                        <option value="all" {% if current_role == 'all' %}selected{% endif %}>全部角色</option>
+                        <option value="buyer" {% if current_role == 'buyer' %}selected{% endif %}>作为买家</option>
+                        <option value="seller" {% if current_role == 'seller' %}selected{% endif %}>作为卖家</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-2"></i>筛选
+                        </button>
+                        <a href="{{ url_for('admin.transactions') }}" class="btn btn-secondary">
+                            <i class="fas fa-undo me-2"></i>重置
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 交易列表 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">交易列表</h6>
+        </div>
+        <div class="card-body">
+            {% if transactions.items %}
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>交易ID</th>
+                            <th>商品信息</th>
+                            <th>买家</th>
+                            <th>卖家</th>
+                            <th>价格</th>
+                            <th>状态</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions.items %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('admin.transaction_detail', transaction_id=transaction.id) }}" 
+                                   class="text-decoration-none">
+                                    #{{ transaction.id }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if transaction.item_id %}
+                                    {% set item = transaction.item %}
+                                    <div class="d-flex align-items-center">
+                                        {% if item.images %}
+                                            <img src="{{ url_for('static', filename='uploads/items/' + item.images[0]) }}" 
+                                                 class="me-2" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                                        {% endif %}
+                                        <div>
+                                            <div class="fw-bold">{{ item.title if item else '商品已删除' }}</div>
+                                            <small class="text-muted">ID: {{ transaction.item_id }}</small>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">商品已删除</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if transaction.buyer_id %}
+                                    {% set buyer = transaction.buyer %}
+                                    <div>
+                                        <div class="fw-bold">{{ buyer.username if buyer else '用户已删除' }}</div>
+                                        <small class="text-muted">ID: {{ transaction.buyer_id }}</small>
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if transaction.seller_id %}
+                                    {% set seller = transaction.seller %}
+                                    <div>
+                                        <div class="fw-bold">{{ seller.username if seller else '用户已删除' }}</div>
+                                        <small class="text-muted">ID: {{ transaction.seller_id }}</small>
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="fw-bold text-success">¥{{ "%.2f"|format(transaction.price) }}</span>
+                            </td>
+                            <td>
+                                {% set status_config = {
+                                    'pending': {'class': 'warning', 'text': '待支付'},
+                                    'paid': {'class': 'info', 'text': '已支付'},
+                                    'shipped': {'class': 'secondary', 'text': '已发货'},
+                                    'completed': {'class': 'success', 'text': '已完成'},
+                                    'cancelled': {'class': 'danger', 'text': '已取消'}
+                                } %}
+                                {% set config = status_config.get(transaction.status, {'class': 'secondary', 'text': transaction.status}) %}
+                                <span class="badge bg-{{ config.class }}">{{ config.text }}</span>
+                            </td>
+                            <td>
+                                <div>{{ transaction.created_at.strftime('%Y-%m-%d') if transaction.created_at else '-' }}</div>
+                                <small class="text-muted">{{ transaction.created_at.strftime('%H:%M:%S') if transaction.created_at else '' }}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('admin.transaction_detail', transaction_id=transaction.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if transaction.status in ['pending', 'paid', 'shipped'] %}
+                                    <button class="btn btn-sm btn-outline-warning" 
+                                            onclick="showStatusModal({{ transaction.id }}, '{{ transaction.status }}')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    {% endif %}
+                                    {% if transaction.status in ['paid', 'shipped'] %}
+                                    <button class="btn btn-sm btn-outline-danger" 
+                                            onclick="showRefundModal({{ transaction.id }})">
+                                        <i class="fas fa-undo"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            {% if transactions.pages > 1 %}
+            <nav aria-label="交易分页">
+                <ul class="pagination justify-content-center">
+                    {% if transactions.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.transactions', page=transactions.prev_num, status=current_status, role=current_role) }}">
+                            上一页
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in transactions.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != transactions.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin.transactions', page=page_num, status=current_status, role=current_role) }}">
+                                    {{ page_num }}
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">…</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if transactions.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.transactions', page=transactions.next_num, status=current_status, role=current_role) }}">
+                            下一页
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-exchange-alt fa-3x text-gray-300 mb-3"></i>
+                <h5 class="text-gray-600">暂无交易记录</h5>
+                <p class="text-gray-500">当前筛选条件下没有找到交易记录</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 状态更新模态框 -->
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">更新交易状态</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="statusForm">
+                    <input type="hidden" id="transactionId" name="transaction_id">
+                    <div class="mb-3">
+                        <label for="newStatus" class="form-label">新状态</label>
+                        <select class="form-select" id="newStatus" name="status" required>
+                            <option value="">请选择状态</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="adminNote" class="form-label">管理员备注</label>
+                        <textarea class="form-control" id="adminNote" name="admin_note" rows="3" 
+                                  placeholder="请输入状态更新原因或备注信息"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="updateTransactionStatus()">确认更新</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 退款模态框 -->
+<div class="modal fade" id="refundModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">处理退款</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="refundForm">
+                    <input type="hidden" id="refundTransactionId" name="transaction_id">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        确认要处理此交易的退款吗？此操作不可撤销。
+                    </div>
+                    <div class="mb-3">
+                        <label for="refundReason" class="form-label">退款原因</label>
+                        <textarea class="form-control" id="refundReason" name="reason" rows="3" 
+                                  placeholder="请输入退款原因" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" onclick="processRefund()">确认退款</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 状态转换映射
+const statusTransitions = {
+    'pending': [
+        {value: 'paid', text: '已支付'},
+        {value: 'cancelled', text: '已取消'}
+    ],
+    'paid': [
+        {value: 'shipped', text: '已发货'},
+        {value: 'cancelled', text: '已取消'}
+    ],
+    'shipped': [
+        {value: 'completed', text: '已完成'},
+        {value: 'cancelled', text: '已取消'}
+    ]
+};
+
+function showStatusModal(transactionId, currentStatus) {
+    document.getElementById('transactionId').value = transactionId;
+    
+    const statusSelect = document.getElementById('newStatus');
+    statusSelect.innerHTML = '<option value="">请选择状态</option>';
+    
+    const transitions = statusTransitions[currentStatus] || [];
+    transitions.forEach(transition => {
+        const option = document.createElement('option');
+        option.value = transition.value;
+        option.textContent = transition.text;
+        statusSelect.appendChild(option);
+    });
+    
+    new bootstrap.Modal(document.getElementById('statusModal')).show();
+}
+
+function showRefundModal(transactionId) {
+    document.getElementById('refundTransactionId').value = transactionId;
+    new bootstrap.Modal(document.getElementById('refundModal')).show();
+}
+
+function updateTransactionStatus() {
+    const transactionId = document.getElementById('transactionId').value;
+    const status = document.getElementById('newStatus').value;
+    const adminNote = document.getElementById('adminNote').value;
+    
+    if (!status) {
+        alert('请选择新状态');
+        return;
+    }
+    
+    fetch(`/admin/transactions/${transactionId}/update_status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            status: status,
+            admin_note: adminNote
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('状态更新成功');
+            location.reload();
+        } else {
+            alert('更新失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('更新失败，请重试');
+    });
+}
+
+function processRefund() {
+    const transactionId = document.getElementById('refundTransactionId').value;
+    const reason = document.getElementById('refundReason').value;
+    
+    if (!reason.trim()) {
+        alert('请输入退款原因');
+        return;
+    }
+    
+    fetch(`/admin/transactions/${transactionId}/refund`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            reason: reason
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('退款处理成功');
+            location.reload();
+        } else {
+            alert('退款处理失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('退款处理失败，请重试');
+    });
+}
+</script>
+{% endblock %}

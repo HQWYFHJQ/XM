@@ -158,6 +158,13 @@
                                 商品管理
                             </a>
                             
+                            <!-- 交易管理 -->
+                            <a class="nav-link {% if request.endpoint in ['admin.transactions', 'admin.transaction_detail'] %}active{% endif %}" 
+                               href="{{ url_for('admin.transactions') }}">
+                                <i class="fas fa-shopping-cart"></i>
+                                交易管理
+                            </a>
+                            
                             <!-- 分类管理 -->
                             <a class="nav-link {% if request.endpoint in ['admin.categories', 'admin.create_category', 'admin.edit_category'] %}active{% endif %}" 
                                href="{{ url_for('admin.categories') }}">

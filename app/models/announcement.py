@@ -22,11 +22,20 @@ class Announcement(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, comment='创建时间')
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment='更新时间')
     
+    # 定向推送相关字段
+    target_type = db.Column(db.Enum('all', 'buyer', 'seller', 'specific'), default='all', comment='推送目标类型')
+    target_user_ids = db.Column(db.Text, nullable=True, comment='目标用户ID列表(JSON格式)')
+    target_conditions = db.Column(db.Text, nullable=True, comment='推送条件(JSON格式)')
+    is_direct_push = db.Column(db.Boolean, default=False, comment='是否定向推送')
+    push_sent = db.Column(db.Boolean, default=False, comment='是否已发送推送')
+    push_sent_at = db.Column(db.DateTime, nullable=True, comment='推送发送时间')
+    
     # 关系
     creator = db.relationship('User', backref='created_announcements', lazy='select')
     
     def to_dict(self):
         """转换为字典"""
+        import json
         return {
             'id': self.id,
             'title': self.title,
@@ -40,7 +49,13 @@ class Announcement(db.Model):
             'created_by': self.created_by,
             'creator_name': self.creator.username if self.creator else '未知',
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'target_type': self.target_type,
+            'target_user_ids': json.loads(self.target_user_ids) if self.target_user_ids else [],
+            'target_conditions': json.loads(self.target_conditions) if self.target_conditions else {},
+            'is_direct_push': self.is_direct_push,
+            'push_sent': self.push_sent,
+            'push_sent_at': self.push_sent_at.isoformat() if self.push_sent_at else None
         }
     
     @classmethod
@@ -188,6 +203,61 @@ class Announcement(db.Model):
         if len(content) > max_length:
             return content[:max_length] + "..."
         return content
+    
+    def get_target_users(self):
+        """获取目标用户列表"""
+        from app.models import User, Transaction
+        
+        if self.target_type == 'all':
+            return User.query.filter_by(is_active=True).all()
+        elif self.target_type == 'buyer':
+            # 获取所有买家
+            buyer_ids = db.session.query(Transaction.buyer_id).distinct().all()
+            buyer_ids = [bid[0] for bid in buyer_ids]
+            return User.query.filter(User.id.in_(buyer_ids), User.is_active==True).all()
+        elif self.target_type == 'seller':
+            # 获取所有卖家
+            seller_ids = db.session.query(Transaction.seller_id).distinct().all()
+            seller_ids = [sid[0] for sid in seller_ids]
+            return User.query.filter(User.id.in_(seller_ids), User.is_active==True).all()
+        elif self.target_type == 'specific':
+            # 获取指定用户
+            if self.target_user_ids:
+                import json
+                user_ids = json.loads(self.target_user_ids)
+                return User.query.filter(User.id.in_(user_ids), User.is_active==True).all()
+        
+        return []
+    
+    def should_push_to_user(self, user):
+        """判断是否应该向指定用户推送"""
+        if not self.is_direct_push:
+            return True
+        
+        if self.target_type == 'all':
+            return True
+        elif self.target_type == 'buyer':
+            # 检查用户是否是买家
+            from app.models import Transaction
+            return Transaction.query.filter_by(buyer_id=user.id).first() is not None
+        elif self.target_type == 'seller':
+            # 检查用户是否是卖家
+            from app.models import Transaction
+            return Transaction.query.filter_by(seller_id=user.id).first() is not None
+        elif self.target_type == 'specific':
+            # 检查用户是否在指定列表中
+            if self.target_user_ids:
+                import json
+                user_ids = json.loads(self.target_user_ids)
+                return user.id in user_ids
+        
+        return False
+    
+    def mark_as_sent(self):
+        """标记为已发送"""
+        self.push_sent = True
+        self.push_sent_at = datetime.utcnow()
+        db.session.commit()
     
     def __repr__(self):
         return f'<Announcement {self.title}>'

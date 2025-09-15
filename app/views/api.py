@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from app import db
-from app.models import User, Item, Category, UserBehavior, Recommendation
+from app.models import User, Item, Category, UserBehavior, Recommendation, Transaction
 from app.services.recommendation_service import RecommendationService
 from app.services.user_service import UserService
 from app.services.item_service import ItemService

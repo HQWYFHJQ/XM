@@ -1,0 +1,493 @@
+{% extends "base.html" %}
+
+{% block title %}交易详情 - 校园跳蚤市场{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>
+            <i class="fas fa-exchange-alt me-2"></i>交易详情
+        </h3>
+        <a href="{{ url_for('main.my_transactions') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>返回交易列表
+        </a>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <!-- 交易基本信息 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">交易信息</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">交易ID</label>
+                            <div class="fw-bold">#{{ transaction.id }}</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">交易状态</label>
+                            <div>
+                                <span class="badge 
+                                    {% if transaction.status == 'pending' %}bg-warning
+                                    {% elif transaction.status == 'paid' %}bg-info
+                                    {% elif transaction.status == 'shipped' %}bg-primary
+                                    {% elif transaction.status == 'completed' %}bg-success
+                                    {% elif transaction.status == 'cancelled' %}bg-danger
+                                    {% else %}bg-secondary{% endif %} fs-6">
+                                    {% if transaction.status == 'pending' %}待支付
+                                    {% elif transaction.status == 'paid' %}已支付
+                                    {% elif transaction.status == 'shipped' %}已发货
+                                    {% elif transaction.status == 'completed' %}已完成
+                                    {% elif transaction.status == 'cancelled' %}已取消
+                                    {% else %}{{ transaction.status }}{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">交易价格</label>
+                            <div class="fw-bold text-primary fs-5">¥{{ "%.2f"|format(transaction.price) }}</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">创建时间</label>
+                            <div>{{ transaction.created_at | beijing_date }}</div>
+                        </div>
+                    </div>
+                    
+                    {% if transaction.payment_method %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">支付方式</label>
+                            <div>{{ transaction.payment_method }}</div>
+                        </div>
+                        {% if transaction.payment_confirmed_at %}
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">支付确认时间</label>
+                            <div>{{ transaction.payment_confirmed_at | beijing_date }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if transaction.completed_at %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">完成时间</label>
+                            <div>{{ transaction.completed_at | beijing_date }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 商品信息 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">商品信息</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>
+                                <a href="{{ url_for('main.item_detail', item_id=transaction.item_id) }}" 
+                                   class="text-decoration-none" target="_blank">
+                                    {{ transaction.item_title }}
+                                </a>
+                            </h6>
+                            <p class="text-muted mb-2">{{ transaction.item_description[:100] }}{% if transaction.item_description|length > 100 %}...{% endif %}</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="{{ url_for('main.item_detail', item_id=transaction.item_id) }}" 
+                               class="btn btn-outline-primary btn-sm" target="_blank">
+                                <i class="fas fa-external-link-alt me-1"></i>查看商品
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 交易双方信息 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">交易双方</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-shopping-cart fa-2x text-primary"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">买家</h6>
+                                    <div class="text-muted">{{ transaction.buyer_name }}</div>
+                                    {% if transaction.buyer_id == current_user.id %}
+                                    <span class="badge bg-primary">您</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-store fa-2x text-success"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">卖家</h6>
+                                    <div class="text-muted">{{ transaction.seller_name }}</div>
+                                    {% if transaction.seller_id == current_user.id %}
+                                    <span class="badge bg-success">您</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 交易备注 -->
+            {% if transaction.buyer_notes or transaction.seller_notes %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">交易备注</h5>
+                </div>
+                <div class="card-body">
+                    {% if transaction.buyer_notes %}
+                    <div class="mb-3">
+                        <h6 class="text-primary">买家备注</h6>
+                        <p class="text-muted">{{ transaction.buyer_notes }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if transaction.seller_notes %}
+                    <div class="mb-3">
+                        <h6 class="text-success">卖家备注</h6>
+                        <p class="text-muted">{{ transaction.seller_notes }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-4">
+            <!-- 操作面板 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">操作</h5>
+                </div>
+                <div class="card-body">
+                    {% if transaction.status == 'pending' and transaction.buyer_id == current_user.id %}
+                    <div class="d-grid mb-3">
+                        <button class="btn btn-success" onclick="confirmPayment({{ transaction.id|safe }})">
+                            <i class="fas fa-check me-2"></i>确认支付
+                        </button>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        请确认您已经完成支付，确认后卖家将收到通知。
+                    </div>
+                    
+                    {% elif transaction.status == 'paid' and transaction.seller_id == current_user.id %}
+                    <div class="d-grid mb-3">
+                        <button class="btn btn-info" onclick="shipItem({{ transaction.id|safe }})">
+                            <i class="fas fa-truck me-2"></i>确认发货
+                        </button>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        买家已支付，请准备发货并确认。
+                    </div>
+                    
+                    {% elif transaction.status == 'shipped' and transaction.buyer_id == current_user.id %}
+                    <div class="d-grid mb-3">
+                        <button class="btn btn-success" onclick="confirmDelivery({{ transaction.id|safe }})">
+                            <i class="fas fa-check-circle me-2"></i>确认收货
+                        </button>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        卖家已发货，请确认收货完成交易。
+                    </div>
+                    
+                    {% elif transaction.status == 'completed' %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        交易已完成！
+                    </div>
+                    
+                    {% elif transaction.status == 'cancelled' %}
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times-circle me-2"></i>
+                        交易已取消
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 交易时间线 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">交易进度</h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item{% if transaction.status in ['paid', 'shipped', 'completed'] %} completed{% endif %}">
+                            <div class="timeline-marker bg-primary"></div>
+                            <div class="timeline-content">
+                                <h6>交易创建</h6>
+                                <small class="text-muted">{{ transaction.created_at | beijing_date }}</small>
+                            </div>
+                        </div>
+                        
+                        {% if transaction.payment_confirmed_at %}
+                        <div class="timeline-item{% if transaction.status in ['shipped', 'completed'] %} completed{% endif %}">
+                            <div class="timeline-marker bg-info"></div>
+                            <div class="timeline-content">
+                                <h6>支付确认</h6>
+                                <small class="text-muted">{{ transaction.payment_confirmed_at | beijing_date }}</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if transaction.shipped_at %}
+                        <div class="timeline-item{% if transaction.status == 'completed' %} completed{% endif %}">
+                            <div class="timeline-marker bg-warning"></div>
+                            <div class="timeline-content">
+                                <h6>商品发货</h6>
+                                <small class="text-muted">{{ transaction.shipped_at | beijing_date }}</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if transaction.delivered_at %}
+                        <div class="timeline-item completed">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <h6>确认收货</h6>
+                                <small class="text-muted">{{ transaction.delivered_at | beijing_date }}</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if transaction.completed_at %}
+                        <div class="timeline-item completed">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <h6>交易完成</h6>
+                                <small class="text-muted">{{ transaction.completed_at | beijing_date }}</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 确认支付模态框 -->
+<div class="modal fade" id="confirmPaymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认支付</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>请确认您已经完成支付？</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    确认支付后，卖家将收到通知并准备发货。
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" id="confirmPaymentBtn">确认支付</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 确认发货模态框 -->
+<div class="modal fade" id="shipItemModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认发货</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>请确认您已经发货？</p>
+                <div class="mb-3">
+                    <label for="shippingNotes" class="form-label">发货备注（可选）</label>
+                    <textarea class="form-control" id="shippingNotes" rows="3" 
+                              placeholder="请输入发货相关信息，如快递单号、发货时间等"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-info" id="shipItemBtn">确认发货</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 确认收货模态框 -->
+<div class="modal fade" id="confirmDeliveryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认收货</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>请确认您已经收到商品？</p>
+                <div class="mb-3">
+                    <label for="deliveryNotes" class="form-label">收货备注（可选）</label>
+                    <textarea class="form-control" id="deliveryNotes" rows="3" 
+                              placeholder="请输入收货相关信息，如商品状态、满意度等"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" id="confirmDeliveryBtn">确认收货</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 20px;
+    width: 2px;
+    height: calc(100% + 10px);
+    background-color: #e9ecef;
+}
+
+.timeline-item.completed:not(:last-child)::before {
+    background-color: #28a745;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -25px;
+    top: 5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.timeline-content h6 {
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentTransactionId = {{ transaction.id|safe }};
+
+function confirmPayment(transactionId) {
+    currentTransactionId = transactionId;
+    $('#confirmPaymentModal').modal('show');
+}
+
+function shipItem(transactionId) {
+    currentTransactionId = transactionId;
+    $('#shipItemModal').modal('show');
+}
+
+function confirmDelivery(transactionId) {
+    currentTransactionId = transactionId;
+    $('#confirmDeliveryModal').modal('show');
+}
+
+$('#confirmPaymentBtn').click(function() {
+    if (currentTransactionId) {
+        $.ajax({
+            url: '/api/transactions/' + currentTransactionId + '/confirm-payment',
+            method: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('操作失败：' + response.message);
+                }
+            },
+            error: function() {
+                alert('操作失败，请重试');
+            }
+        });
+    }
+});
+
+$('#shipItemBtn').click(function() {
+    if (currentTransactionId) {
+        const notes = $('#shippingNotes').val();
+        $.ajax({
+            url: '/api/transactions/' + currentTransactionId + '/ship',
+            method: 'POST',
+            data: JSON.stringify({
+                shipping_notes: notes
+            }),
+            contentType: 'application/json',
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('操作失败：' + response.message);
+                }
+            },
+            error: function() {
+                alert('操作失败，请重试');
+            }
+        });
+    }
+});
+
+$('#confirmDeliveryBtn').click(function() {
+    if (currentTransactionId) {
+        const notes = $('#deliveryNotes').val();
+        $.ajax({
+            url: '/api/transactions/' + currentTransactionId + '/deliver',
+            method: 'POST',
+            data: JSON.stringify({
+                delivery_notes: notes
+            }),
+            contentType: 'application/json',
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('操作失败：' + response.message);
+                }
+            },
+            error: function() {
+                alert('操作失败，请重试');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -42,6 +42,12 @@ def dashboard():
     active_items = Item.query.filter_by(status='active').count()
     total_transactions = Transaction.query.count()
     
+    # 交易详细统计
+    from app.services.transaction_service import TransactionService
+    transaction_service = TransactionService()
+    transaction_stats_result = transaction_service.get_transaction_stats()
+    transaction_stats = transaction_stats_result.get('stats', {}) if transaction_stats_result.get('success') else {}
+    
     # 最近7天统计
     seven_days_ago = get_beijing_utc_now() - timedelta(days=7)
     
@@ -80,6 +86,7 @@ def dashboard():
                          total_items=total_items,
                          active_items=active_items,
                          total_transactions=total_transactions,
+                         transaction_stats=transaction_stats,
                          recent_users=recent_users,
                          recent_items=recent_items,
                          recent_behaviors=recent_behaviors,
@@ -93,6 +100,158 @@ def dashboard():
                          total_announcements=total_announcements,
                          active_announcements=active_announcements,
                          recent_announcements=recent_announcements)
+
+@admin_bp.route('/transactions')
+@login_required
+@admin_required
+def transactions():
+    """交易管理"""
+    page = request.args.get('page', 1, type=int)
+    status = request.args.get('status', 'all')
+    search = request.args.get('search', '')
+    
+    query = Transaction.query
+    
+    # 状态筛选
+    if status != 'all':
+        query = query.filter_by(status=status)
+    
+    # 搜索
+    if search:
+        query = query.join(Item).filter(
+            Item.title.contains(search) |
+            Transaction.buyer.has(User.username.contains(search)) |
+            Transaction.seller.has(User.username.contains(search))
+        )
+    
+    transactions = query.order_by(Transaction.created_at.desc()).paginate(
+        page=page, per_page=20, error_out=False
+    )
+    
+    # 获取交易统计
+    from app.services.transaction_service import TransactionService
+    transaction_service = TransactionService()
+    transaction_stats_result = transaction_service.get_transaction_stats()
+    raw_stats = transaction_stats_result.get('stats', {}) if transaction_stats_result.get('success') else {}
+    
+    # 映射统计字段名到模板期望的格式
+    stats = {
+        'total': raw_stats.get('total_transactions', 0),
+        'pending': raw_stats.get('pending_transactions', 0),
+        'paid': raw_stats.get('paid_transactions', 0),
+        'shipped': raw_stats.get('shipped_transactions', 0),
+        'completed': raw_stats.get('completed_transactions', 0),
+        'cancelled': raw_stats.get('cancelled_transactions', 0),
+        'delivered': raw_stats.get('delivered_transactions', 0),
+        'timeout': raw_stats.get('timeout_transactions', 0),
+        'today': raw_stats.get('today_transactions', 0),
+        'week': raw_stats.get('week_transactions', 0),
+        'month': raw_stats.get('month_transactions', 0)
+    }
+    
+    return render_template('admin/transactions.html',
+                         transactions=transactions,
+                         current_status=status,
+                         current_search=search,
+                         stats=stats,
+                         audit_counts=get_audit_counts())
+
+@admin_bp.route('/transactions/<int:transaction_id>')
+@login_required
+@admin_required
+def transaction_detail(transaction_id):
+    """交易详情"""
+    transaction = Transaction.query.get_or_404(transaction_id)
+    
+    return render_template('admin/transaction_detail.html',
+                         transaction=transaction,
+                         audit_counts=get_audit_counts())
+
+@admin_bp.route('/transactions/<int:transaction_id>/cancel', methods=['POST'])
+@login_required
+@admin_required
+def cancel_transaction(transaction_id):
+    """取消交易"""
+    try:
+        transaction = Transaction.query.get_or_404(transaction_id)
+        
+        if transaction.status in ['completed', 'cancelled', 'timeout']:
+            return jsonify({
+                'success': False,
+                'message': '该交易状态不允许取消'
+            })
+        
+        # 取消交易
+        transaction.cancel_transaction('管理员取消')
+        
+        # 恢复商品状态
+        item = transaction.item
+        item.status = 'active'
+        item.sold_at = None
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': '交易已取消'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'取消交易失败: {str(e)}'
+        })
+
+@admin_bp.route('/transactions/<int:transaction_id>/complete', methods=['POST'])
+@login_required
+@admin_required
+def complete_transaction(transaction_id):
+    """强制完成交易"""
+    try:
+        transaction = Transaction.query.get_or_404(transaction_id)
+        
+        if transaction.status in ['completed', 'cancelled', 'timeout']:
+            return jsonify({
+                'success': False,
+                'message': '该交易状态不允许完成'
+            })
+        
+        # 强制完成交易
+        transaction.complete_transaction()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': '交易已强制完成'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'完成交易失败: {str(e)}'
+        })
+
+@admin_bp.route('/process-timeout-transactions', methods=['POST'])
+@login_required
+@admin_required
+def process_timeout_transactions():
+    """处理超时交易"""
+    try:
+        from app.services.transaction_service import TransactionService
+        transaction_service = TransactionService()
+        
+        result = transaction_service.process_timeout_transactions()
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'处理超时交易失败: {str(e)}'
+        })
 
 @admin_bp.route('/users')
 @login_required
@@ -1547,6 +1706,140 @@ def toggle_announcement_pin(announcement_id):
     result = announcement_service.toggle_pin_status(announcement_id)
     
     return jsonify(result)
+
+
+
+@admin_bp.route('/transactions/<int:transaction_id>/update_status', methods=['POST'])
+@login_required
+@admin_required
+def update_transaction_status(transaction_id):
+    """更新交易状态"""
+    transaction = Transaction.query.get_or_404(transaction_id)
+    new_status = request.json.get('status')
+    admin_note = request.json.get('admin_note', '')
+    
+    if not new_status:
+        return jsonify({'success': False, 'message': '状态不能为空'})
+    
+    # 验证状态转换
+    valid_transitions = {
+        'pending': ['paid', 'cancelled'],
+        'paid': ['shipped', 'cancelled'],
+        'shipped': ['completed', 'cancelled'],
+        'completed': [],
+        'cancelled': []
+    }
+    
+    if new_status not in valid_transitions.get(transaction.status, []):
+        return jsonify({'success': False, 'message': f'不能从{transaction.status}状态转换到{new_status}状态'})
+    
+    try:
+        # 更新交易状态
+        transaction.status = new_status
+        transaction.updated_at = get_beijing_utc_now()
+        
+        # 添加管理员备注
+        if admin_note:
+            if not transaction.admin_notes:
+                transaction.admin_notes = []
+            transaction.admin_notes.append({
+                'admin_id': current_user.id,
+                'admin_name': current_user.username,
+                'note': admin_note,
+                'timestamp': get_beijing_utc_now().isoformat()
+            })
+        
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': '交易状态更新成功'})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'更新失败：{str(e)}'})
+
+@admin_bp.route('/transactions/<int:transaction_id>/refund', methods=['POST'])
+@login_required
+@admin_required
+def refund_transaction(transaction_id):
+    """处理退款"""
+    transaction = Transaction.query.get_or_404(transaction_id)
+    refund_reason = request.json.get('reason', '')
+    
+    if transaction.status not in ['paid', 'shipped']:
+        return jsonify({'success': False, 'message': '只有已支付或已发货的交易才能退款'})
+    
+    try:
+        # 更新交易状态为已取消
+        transaction.status = 'cancelled'
+        transaction.updated_at = get_beijing_utc_now()
+        
+        # 添加退款记录
+        if not transaction.admin_notes:
+            transaction.admin_notes = []
+        transaction.admin_notes.append({
+            'admin_id': current_user.id,
+            'admin_name': current_user.username,
+            'action': 'refund',
+            'reason': refund_reason,
+            'timestamp': get_beijing_utc_now().isoformat()
+        })
+        
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': '退款处理成功'})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'退款处理失败：{str(e)}'})
+
+@admin_bp.route('/transactions/export')
+@login_required
+@admin_required
+def export_transactions():
+    """导出交易数据"""
+    import csv
+    from flask import make_response
+    from io import StringIO
+    
+    # 获取所有交易
+    transactions = Transaction.query.order_by(Transaction.created_at.desc()).all()
+    
+    # 创建CSV
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    # 写入标题行
+    writer.writerow([
+        '交易ID', '商品标题', '买家', '卖家', '价格', '状态', 
+        '创建时间', '更新时间', '买家备注', '卖家备注'
+    ])
+    
+    # 写入数据行
+    for t in transactions:
+        buyer = User.query.get(t.buyer_id) if t.buyer_id else None
+        seller = User.query.get(t.seller_id) if t.seller_id else None
+        item = Item.query.get(t.item_id) if t.item_id else None
+        
+        writer.writerow([
+            t.id,
+            item.title if item else '商品已删除',
+            buyer.username if buyer else '用户已删除',
+            seller.username if seller else '用户已删除',
+            t.price,
+            t.status,
+            t.created_at.strftime('%Y-%m-%d %H:%M:%S') if t.created_at else '',
+            t.updated_at.strftime('%Y-%m-%d %H:%M:%S') if t.updated_at else '',
+            t.buyer_notes or '',
+            t.seller_notes or ''
+        ])
+    
+    # 创建响应
+    output.seek(0)
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename=transactions_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    
+    return response
 
 @admin_bp.route('/announcements/<int:announcement_id>/delete', methods=['POST'])
 @login_required

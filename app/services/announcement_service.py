@@ -11,7 +11,9 @@ class AnnouncementService:
     
     def create_announcement(self, title, content, announcement_type='system', 
                           priority='normal', is_pinned=False, start_time=None, 
-                          end_time=None, created_by=None, use_min_id=True):
+                          end_time=None, created_by=None, use_min_id=True,
+                          target_type='all', target_user_ids=None, target_conditions=None,
+                          is_direct_push=False):
         """创建公告"""
         try:
             # 如果启用最小可用ID分配
@@ -19,6 +21,17 @@ class AnnouncementService:
                 announcement_id = self._get_next_available_id()
             else:
                 announcement_id = None
+            
+            # 处理目标用户ID列表
+            import json
+            target_user_ids_json = None
+            if target_user_ids:
+                target_user_ids_json = json.dumps(target_user_ids)
+            
+            # 处理推送条件
+            target_conditions_json = None
+            if target_conditions:
+                target_conditions_json = json.dumps(target_conditions)
             
             announcement = Announcement(
                 id=announcement_id,
@@ -29,7 +42,11 @@ class AnnouncementService:
                 is_pinned=is_pinned,
                 start_time=start_time,
                 end_time=end_time,
-                created_by=created_by
+                created_by=created_by,
+                target_type=target_type,
+                target_user_ids=target_user_ids_json,
+                target_conditions=target_conditions_json,
+                is_direct_push=is_direct_push
             )
             
             db.session.add(announcement)
@@ -358,3 +375,178 @@ class AnnouncementService:
             return "待推送"
         else:
             return "已推送"
+    
+    def send_direct_push(self, announcement_id):
+        """发送定向推送"""
+        try:
+            announcement = Announcement.query.get(announcement_id)
+            if not announcement:
+                return {
+                    'success': False,
+                    'message': '公告不存在'
+                }
+            
+            if not announcement.is_direct_push:
+                return {
+                    'success': False,
+                    'message': '该公告不是定向推送公告'
+                }
+            
+            if announcement.push_sent:
+                return {
+                    'success': False,
+                    'message': '该公告已经发送过推送'
+                }
+            
+            # 获取目标用户
+            target_users = announcement.get_target_users()
+            
+            if not target_users:
+                return {
+                    'success': False,
+                    'message': '没有找到目标用户'
+                }
+            
+            # 发送邮件通知
+            from app.services.email_service import EmailService
+            email_service = EmailService()
+            
+            success_count = 0
+            failed_count = 0
+            
+            for user in target_users:
+                try:
+                    # 检查是否应该向该用户推送
+                    if not announcement.should_push_to_user(user):
+                        continue
+                    
+                    # 发送邮件
+                    subject = f'校园跳蚤市场 - {announcement.title}'
+                    body = f"""
+                    <html>
+                    <body>
+                        <h2>{announcement.title}</h2>
+                        <div>{announcement.render_content()}</div>
+                        <hr>
+                        <p style="color: #666; font-size: 12px;">此邮件由系统自动发送，请勿回复。</p>
+                    </body>
+                    </html>
+                    """
+                    
+                    result = email_service.send_email(user.email, subject, body)
+                    if result['success']:
+                        success_count += 1
+                    else:
+                        failed_count += 1
+                        
+                except Exception as e:
+                    failed_count += 1
+                    print(f"发送邮件给用户 {user.username} 失败: {str(e)}")
+            
+            # 标记为已发送
+            announcement.mark_as_sent()
+            
+            return {
+                'success': True,
+                'message': f'定向推送完成，成功发送 {success_count} 条，失败 {failed_count} 条',
+                'success_count': success_count,
+                'failed_count': failed_count
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'发送定向推送失败: {str(e)}'
+            }
+    
+    def create_transaction_announcement(self, transaction, announcement_type='notice'):
+        """为交易创建定向公告"""
+        try:
+            if announcement_type == 'shipping_reminder':
+                # 发货提醒公告
+                title = f"发货提醒 - {transaction.item.title}"
+                content = f"""
+                <p>您有商品需要发货：</p>
+                <ul>
+                    <li>商品：{transaction.item.title}</li>
+                    <li>价格：¥{transaction.price}</li>
+                    <li>买家：{transaction.buyer.username}</li>
+                    <li>购买时间：{transaction.created_at.strftime('%Y-%m-%d %H:%M:%S')}</li>
+                </ul>
+                <p>请及时登录系统确认发货！</p>
+                """
+                
+                # 只推送给卖家
+                return self.create_announcement(
+                    title=title,
+                    content=content,
+                    announcement_type=announcement_type,
+                    priority='high',
+                    created_by=1,  # 系统管理员
+                    target_type='specific',
+                    target_user_ids=[transaction.seller_id],
+                    is_direct_push=True
+                )
+            
+            elif announcement_type == 'delivery_reminder':
+                # 收货提醒公告
+                title = f"收货提醒 - {transaction.item.title}"
+                content = f"""
+                <p>您购买的商品已发货：</p>
+                <ul>
+                    <li>商品：{transaction.item.title}</li>
+                    <li>价格：¥{transaction.price}</li>
+                    <li>卖家：{transaction.seller.username}</li>
+                    <li>发货时间：{transaction.shipped_at.strftime('%Y-%m-%d %H:%M:%S')}</li>
+                </ul>
+                <p>请及时确认收货！</p>
+                """
+                
+                # 只推送给买家
+                return self.create_announcement(
+                    title=title,
+                    content=content,
+                    announcement_type=announcement_type,
+                    priority='high',
+                    created_by=1,  # 系统管理员
+                    target_type='specific',
+                    target_user_ids=[transaction.buyer_id],
+                    is_direct_push=True
+                )
+            
+            elif announcement_type == 'timeout_notification':
+                # 超时通知公告
+                title = f"交易超时通知 - {transaction.item.title}"
+                content = f"""
+                <p>您的交易已超时：</p>
+                <ul>
+                    <li>商品：{transaction.item.title}</li>
+                    <li>价格：¥{transaction.price}</li>
+                    <li>超时原因：{transaction.dispute_reason or '系统超时'}</li>
+                    <li>超时时间：{transaction.timeout_at.strftime('%Y-%m-%d %H:%M:%S')}</li>
+                </ul>
+                <p>如有疑问，请联系系统管理员：21641685@qq.com</p>
+                """
+                
+                # 推送给买家和卖家
+                return self.create_announcement(
+                    title=title,
+                    content=content,
+                    announcement_type=announcement_type,
+                    priority='urgent',
+                    created_by=1,  # 系统管理员
+                    target_type='specific',
+                    target_user_ids=[transaction.buyer_id, transaction.seller_id],
+                    is_direct_push=True
+                )
+            
+            return {
+                'success': False,
+                'message': '不支持的公告类型'
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'创建交易公告失败: {str(e)}'
+            }

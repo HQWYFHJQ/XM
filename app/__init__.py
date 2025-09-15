@@ -60,6 +60,7 @@ def create_app(config_name='default'):
     from app.views.message import message_bp
     from app.views.message_api import message_api_bp
     from app.views.announcement_api import announcement_api_bp
+    from app.views.transaction_api import transaction_api_bp
     
     app.register_blueprint(main_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
@@ -68,6 +69,7 @@ def create_app(config_name='default'):
     app.register_blueprint(message_bp, url_prefix='/messages')
     app.register_blueprint(message_api_bp, url_prefix='/api/messages')
     app.register_blueprint(announcement_api_bp)
+    app.register_blueprint(transaction_api_bp, url_prefix='/api/transactions')
     
     # 添加模板上下文处理器
     @app.context_processor

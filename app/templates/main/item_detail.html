@@ -102,12 +102,17 @@
                     <div class="d-grid gap-2">
                         {% if current_user.is_authenticated %}
                             {% if current_user.id != item.seller_id %}
-                            <button class="btn btn-primary contact-btn" data-item-id="{{ item.id }}">
-                                <i class="fas fa-comments me-2"></i>联系卖家
-                            </button>
-                            <button class="btn btn-outline-danger like-btn" data-item-id="{{ item.id }}">
-                                <i class="far fa-heart me-2"></i>点赞
-                            </button>
+                                {% if item.status == 'active' %}
+                                <button class="btn btn-success btn-lg buy-btn" data-item-id="{{ item.id }}" data-item-title="{{ item.title }}" data-item-price="{{ item.price }}">
+                                    <i class="fas fa-shopping-cart me-2"></i>立即购买
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-primary contact-btn" data-item-id="{{ item.id }}">
+                                    <i class="fas fa-comments me-2"></i>联系卖家
+                                </button>
+                                <button class="btn btn-outline-danger like-btn" data-item-id="{{ item.id }}">
+                                    <i class="far fa-heart me-2"></i>点赞
+                                </button>
                             {% else %}
                             <a href="{{ url_for('main.my_items') }}" class="btn btn-secondary">
                                 <i class="fas fa-edit me-2"></i>管理我的商品
@@ -115,7 +120,7 @@
                             {% endif %}
                         {% else %}
                         <a href="{{ url_for('main.login') }}" class="btn btn-primary">
-                            <i class="fas fa-sign-in-alt me-2"></i>登录后联系卖家
+                            <i class="fas fa-sign-in-alt me-2"></i>登录后购买
                         </a>
                         {% endif %}
                     </div>
@@ -201,6 +206,70 @@
     </div>
     {% endif %}
 </div>
+
+<!-- 支付弹窗 -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="paymentModalLabel">确认购买</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-3">
+                    <h6 id="itemTitle"></h6>
+                    <h4 class="text-primary" id="itemPrice"></h4>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    请使用微信扫描下方二维码完成支付
+                </div>
+                
+                <div class="mb-3">
+                    <img src="{{ url_for('static', filename='images/wechat_qr.png') }}" 
+                         class="img-fluid" alt="微信收款码" style="max-width: 200px;">
+                </div>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    支付完成后请点击下方按钮确认，系统将通知卖家发货
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" id="confirmPaymentBtn">
+                    <i class="fas fa-check me-2"></i>我已完成支付
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 支付成功弹窗 -->
+<div class="modal fade" id="paymentSuccessModal" tabindex="-1" aria-labelledby="paymentSuccessModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="paymentSuccessModalLabel">
+                    <i class="fas fa-check-circle me-2"></i>支付成功
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-3">
+                    <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                </div>
+                <h5>支付确认成功！</h5>
+                <p class="text-muted">系统已通知卖家发货，请耐心等待</p>
+                <p class="text-muted">您可以在个人中心查看交易状态</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_css %}
@@ -209,4 +278,90 @@
     white-space: pre-line;
 }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // 购买按钮点击事件
+    $('.buy-btn').click(function() {
+        var itemId = $(this).data('item-id');
+        var itemTitle = $(this).data('item-title');
+        var itemPrice = $(this).data('item-price');
+        
+        $('#itemTitle').text(itemTitle);
+        $('#itemPrice').text('¥' + itemPrice);
+        
+        $('#paymentModal').modal('show');
+    });
+    
+    // 确认支付按钮点击事件
+    $('#confirmPaymentBtn').click(function() {
+        var itemId = $('.buy-btn').data('item-id');
+        var button = $(this);
+        
+        // 禁用按钮防止重复点击
+        button.prop('disabled', true);
+        button.html('<i class="fas fa-spinner fa-spin me-2"></i>处理中...');
+        
+        // 发送支付确认请求
+        $.ajax({
+            url: '/api/transactions/purchase',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                item_id: itemId
+            }),
+            success: function(response) {
+                if (response.success) {
+                    $('#paymentModal').modal('hide');
+                    $('#paymentSuccessModal').modal('show');
+                    
+                    // 更新页面状态
+                    $('.buy-btn').remove();
+                    $('.contact-btn').before('<button class="btn btn-warning" disabled><i class="fas fa-clock me-2"></i>等待卖家发货</button>');
+                } else {
+                    alert('支付确认失败：' + response.message);
+                    button.prop('disabled', false);
+                    button.html('<i class="fas fa-check me-2"></i>我已完成支付');
+                }
+            },
+            error: function() {
+                alert('网络错误，请重试');
+                button.prop('disabled', false);
+                button.html('<i class="fas fa-check me-2"></i>我已完成支付');
+            }
+        });
+    });
+    
+    // 联系卖家按钮点击事件
+    $('.contact-btn').click(function() {
+        var itemId = $(this).data('item-id');
+        // 这里可以添加联系卖家的逻辑
+        window.location.href = '/messages/conversation/' + itemId;
+    });
+    
+    // 点赞按钮点击事件
+    $('.like-btn').click(function() {
+        var itemId = $(this).data('item-id');
+        var button = $(this);
+        
+        $.ajax({
+            url: '/api/items/' + itemId + '/like',
+            method: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    if (response.liked) {
+                        button.removeClass('btn-outline-danger').addClass('btn-danger');
+                        button.html('<i class="fas fa-heart me-2"></i>已点赞');
+                    } else {
+                        button.removeClass('btn-danger').addClass('btn-outline-danger');
+                        button.html('<i class="far fa-heart me-2"></i>点赞');
+                    }
+                }
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

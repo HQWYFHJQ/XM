@@ -166,6 +166,9 @@
                                 <li role="none"><a class="dropdown-item" href="{{ url_for('main.my_items') }}" role="menuitem">
                                     <i class="fas fa-box me-2" aria-hidden="true"></i>我的商品
                                 </a></li>
+                                <li role="none"><a class="dropdown-item" href="{{ url_for('main.my_transactions') }}" role="menuitem">
+                                    <i class="fas fa-exchange-alt me-2" aria-hidden="true"></i>我的交易
+                                </a></li>
                                 <li role="none"><a class="dropdown-item" href="{{ url_for('message.messages') }}" role="menuitem">
                                     <i class="fas fa-comments me-2" aria-hidden="true"></i>我的消息
                                 </a></li>
@@ -173,6 +176,9 @@
                                 <li role="none"><hr class="dropdown-divider"></li>
                                 <li role="none"><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}" role="menuitem">
                                     <i class="fas fa-cog me-2" aria-hidden="true"></i>管理后台
+                                </a></li>
+                                <li role="none"><a class="dropdown-item" href="{{ url_for('admin.transactions') }}" role="menuitem">
+                                    <i class="fas fa-shopping-cart me-2" aria-hidden="true"></i>交易管理
                                 </a></li>
                                 {% endif %}
                                 <li role="none"><hr class="dropdown-divider"></li>

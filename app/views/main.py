@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from app import db, redis_client
-from app.models import User, Item, Category, UserBehavior, Recommendation
+from app.models import User, Item, Category, UserBehavior, Recommendation, Transaction
 from app.services.recommendation_service import RecommendationService
 from app.services.user_service import UserService
 from app.services.item_service import ItemService
@@ -483,6 +483,52 @@ def my_items():
     )
     
     return render_template('main/my_items.html', items=items, current_status=status)
+
+@main_bp.route('/my-transactions')
+@login_required
+def my_transactions():
+    """我的交易记录"""
+    page = request.args.get('page', 1, type=int)
+    status = request.args.get('status', 'all')
+    role = request.args.get('role', 'all')  # all, buyer, seller
+    
+    # 构建查询
+    query = Transaction.query.filter(
+        (Transaction.buyer_id == current_user.id) | 
+        (Transaction.seller_id == current_user.id)
+    )
+    
+    # 状态筛选
+    if status != 'all':
+        query = query.filter_by(status=status)
+    
+    # 角色筛选
+    if role == 'buyer':
+        query = query.filter_by(buyer_id=current_user.id)
+    elif role == 'seller':
+        query = query.filter_by(seller_id=current_user.id)
+    
+    transactions = query.order_by(Transaction.created_at.desc()).paginate(
+        page=page, per_page=10, error_out=False
+    )
+    
+    return render_template('main/my_transactions.html', 
+                         transactions=transactions, 
+                         current_status=status,
+                         current_role=role)
+
+@main_bp.route('/my-transactions/<int:transaction_id>')
+@login_required
+def my_transaction_detail(transaction_id):
+    """我的交易详情"""
+    transaction = Transaction.query.get_or_404(transaction_id)
+    
+    # 检查权限：只有交易的买方或卖方可以查看
+    if transaction.buyer_id != current_user.id and transaction.seller_id != current_user.id:
+        flash('您没有权限查看此交易！', 'error')
+        return redirect(url_for('main.my_transactions'))
+    
+    return render_template('main/my_transaction_detail.html', transaction=transaction)
 
 @main_bp.route('/my-items/<int:item_id>/edit', methods=['GET', 'POST'])
 @login_required
