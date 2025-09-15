@@ -90,18 +90,34 @@ class Transaction(db.Model):
         self.status = 'completed'
         self.completed_at = datetime.utcnow()
         self.updated_at = datetime.utcnow()
+        
+        # 更新商品状态为已出售
+        if hasattr(self, 'item') and self.item:
+            self.item.status = 'sold'
+            if not self.item.sold_at:
+                self.item.sold_at = datetime.utcnow()
     
     def cancel_transaction(self, reason=None):
         """取消交易"""
         self.status = 'cancelled'
         self.dispute_reason = reason
         self.updated_at = datetime.utcnow()
+        
+        # 恢复商品状态为活跃
+        if hasattr(self, 'item') and self.item:
+            self.item.status = 'active'
+            self.item.sold_at = None
     
     def timeout_transaction(self):
         """交易超时"""
         self.status = 'timeout'
         self.timeout_at = datetime.utcnow()
         self.updated_at = datetime.utcnow()
+        
+        # 恢复商品状态为活跃
+        if hasattr(self, 'item') and self.item:
+            self.item.status = 'active'
+            self.item.sold_at = None
     
     def is_payment_timeout(self, hours=72):
         """检查支付是否超时（默认72小时）"""

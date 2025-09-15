@@ -84,13 +84,8 @@ class TransactionService:
     def _handle_shipping_timeout(self, transaction):
         """处理发货超时"""
         try:
-            # 标记交易为超时
+            # 标记交易为超时（会自动恢复商品状态）
             transaction.timeout_transaction()
-            
-            # 恢复商品状态
-            item = transaction.item
-            item.status = 'active'
-            item.sold_at = None
             
             db.session.commit()
             

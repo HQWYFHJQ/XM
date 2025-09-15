@@ -283,8 +283,9 @@ def deliver_item(transaction_id):
         data = request.get_json()
         delivery_notes = data.get('delivery_notes', '')
         
-        # 标记为已收货
+        # 标记为已收货并完成交易
         transaction.mark_delivered(delivery_notes)
+        transaction.complete_transaction()
         db.session.commit()
         
         # 发送邮件通知卖家
