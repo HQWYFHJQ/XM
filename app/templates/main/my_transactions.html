@@ -231,23 +231,39 @@
 </div>
 
 <!-- 确认支付模态框 -->
-<div class="modal fade" id="confirmPaymentModal" tabindex="-1">
-    <div class="modal-dialog">
+<div class="modal fade" id="confirmPaymentModal" tabindex="-1" aria-labelledby="confirmPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">确认支付</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="confirmPaymentModalLabel">确认支付</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <p>请确认您已经完成支付？</p>
-                <div class="alert alert-info">
+            <div class="modal-body text-center">
+                <div class="mb-3">
+                    <h6 class="mb-2">请确认您已经完成支付？</h6>
+                </div>
+                
+                <div class="alert alert-info alert-sm mb-3">
                     <i class="fas fa-info-circle me-2"></i>
-                    确认支付后，卖家将收到通知并准备发货。
+                    确认支付后，卖家将收到通知并准备发货
+                </div>
+                
+                <!-- 二维码显示区域 -->
+                <div class="qr-code-container mb-3">
+                    <img src="{{ url_for('static', filename='images/wechat_qr.png') }}" 
+                         class="qr-code-image" alt="微信收款码">
+                </div>
+                
+                <div class="d-flex align-items-center justify-content-center mb-3">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <span class="text-success fw-bold">微信支付</span>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-success" id="confirmPaymentBtn">确认支付</button>
+                <button type="button" class="btn btn-success" id="confirmPaymentBtn">
+                    <i class="fas fa-check me-2"></i>我已完成支付
+                </button>
             </div>
         </div>
     </div>
@@ -300,6 +316,153 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* 交易状态徽章样式 */
+.badge-pending {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.badge-paid {
+    background-color: #28a745;
+    color: #fff;
+}
+
+.badge-shipped {
+    background-color: #17a2b8;
+    color: #fff;
+}
+
+.badge-completed {
+    background-color: #6c757d;
+    color: #fff;
+}
+
+.badge-cancelled {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+/* 交易卡片样式 */
+.transaction-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: #fff;
+    transition: box-shadow 0.2s;
+}
+
+.transaction-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 按钮样式 */
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* 确认支付弹窗样式优化 */
+#confirmPaymentModal .modal-dialog {
+    max-width: 800px !important;
+    width: 800px !important;
+    margin: 1.75rem auto !important;
+    position: relative !important;
+    transform: none !important;
+}
+
+#confirmPaymentModal .modal-content {
+    border-radius: 12px !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+}
+
+#confirmPaymentModal .modal-body {
+    padding: 1rem 1.25rem;
+}
+
+#confirmPaymentModal .modal-header {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+#confirmPaymentModal .modal-footer {
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid #dee2e6;
+}
+
+.qr-code-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px;
+    border: 2px dashed #dee2e6;
+}
+
+.qr-code-image {
+    max-width: 560px;
+    max-height: 700px;
+    width: auto;
+    height: auto;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 响应式调整 */
+@media (max-width: 992px) {
+    #confirmPaymentModal .modal-dialog {
+        max-width: 95% !important;
+        width: 95% !important;
+        margin: 10px auto !important;
+    }
+    
+    .qr-code-image {
+        max-width: 400px;
+        max-height: 500px;
+    }
+}
+
+@media (max-width: 576px) {
+    #confirmPaymentModal .modal-dialog {
+        max-width: 90% !important;
+        width: 90% !important;
+        margin: 10px auto !important;
+    }
+    
+    .qr-code-image {
+        max-width: 300px;
+        max-height: 380px;
+    }
+}
+
+@media (max-width: 768px) {
+    .transaction-card {
+        padding: 0.75rem;
+    }
+    
+    .btn-sm {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* 小屏幕优化 */
+@media (max-width: 480px) {
+    .qr-code-image {
+        max-width: 250px;
+        max-height: 320px;
+    }
+    
+    .qr-code-container {
+        padding: 10px;
+    }
+}
+</style>
 {% endblock %}
 
 {% block extra_js %}
