@@ -91,15 +91,15 @@ if ps -p $APP_PID > /dev/null; then
     echo "✓ 应用启动成功"
     
     # 检查端口
-    if netstat -tlnp | grep :8000 > /dev/null; then
-        echo "✓ 端口8000监听正常"
+    if netstat -tlnp | grep :80 > /dev/null; then
+        echo "✓ 端口80监听正常"
     else
-        echo "✗ 端口8000未监听"
+        echo "✗ 端口80未监听"
     fi
     
     # 测试应用响应
     echo "测试应用响应..."
-    if curl -s http://localhost:8000/ > /dev/null 2>&1; then
+    if curl -s http://localhost:80/ > /dev/null 2>&1; then
         echo "✓ 应用响应正常"
     else
         echo "✗ 应用无响应"
@@ -111,7 +111,7 @@ if ps -p $APP_PID > /dev/null; then
     ps aux | grep gunicorn | grep -v grep
     echo ""
     echo "端口监听:"
-    netstat -tlnp | grep :8000
+    netstat -tlnp | grep :80
     echo ""
     echo "最近日志:"
     tail -10 logs/gunicorn_service.log
@@ -121,7 +121,7 @@ if ps -p $APP_PID > /dev/null; then
     echo "✓ 应用在后台运行，关闭SSH不会影响服务"
     echo "✓ PID已保存到 logs/app.pid"
     echo ""
-    echo "访问地址: http://localhost:8000"
+    echo "访问地址: http://localhost:80"
     echo "日志文件: logs/gunicorn_service.log"
     echo "PID文件: logs/app.pid"
     echo ""

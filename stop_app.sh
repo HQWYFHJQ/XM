@@ -60,11 +60,11 @@ echo ""
 
 # 检查端口
 echo "检查端口状态..."
-if netstat -tlnp | grep :8000 > /dev/null; then
-    echo "✗ 端口8000仍在监听"
-    netstat -tlnp | grep :8000
+if netstat -tlnp | grep :80 > /dev/null; then
+    echo "✗ 端口80仍在监听"
+    netstat -tlnp | grep :80
 else
-    echo "✓ 端口8000已释放"
+    echo "✓ 端口80已释放"
 fi
 
 echo ""

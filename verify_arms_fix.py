@@ -49,7 +49,7 @@ def test_application_requests():
     """测试应用请求生成监控数据"""
     print_section("应用请求测试")
     
-    base_url = "http://localhost:8000"
+    base_url = "http://localhost:80"
     
     # 测试用例
     test_cases = [
@@ -83,7 +83,7 @@ def generate_load_test():
     """生成负载测试数据"""
     print_section("负载测试数据生成")
     
-    base_url = "http://localhost:8000"
+    base_url = "http://localhost:80"
     
     print("生成负载测试数据...")
     

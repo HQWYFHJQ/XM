@@ -5,7 +5,7 @@ import multiprocessing
 import os
 
 # 服务器套接字
-bind = "0.0.0.0:8000"
+bind = "0.0.0.0:80"
 backlog = 2048
 
 # Worker进程

@@ -130,20 +130,20 @@ def check_application_status():
     # 检查端口监听
     try:
         result = subprocess.run(['netstat', '-tlnp'], capture_output=True, text=True)
-        if ':8000' in result.stdout:
-            print("✓ 端口8000正在监听")
+        if ':80' in result.stdout:
+            print("✓ 端口80正在监听")
             # 提取监听进程信息
             for line in result.stdout.split('\n'):
-                if ':8000' in line:
+                if ':80' in line:
                     print(f"  监听信息: {line.strip()}")
         else:
-            print("✗ 端口8000未监听")
+            print("✗ 端口80未监听")
     except Exception as e:
         print(f"✗ 检查端口监听时出错: {e}")
     
     # 检查应用响应
     try:
-        response = requests.get('http://localhost:8000/', timeout=5)
+        response = requests.get('http://localhost:80/', timeout=5)
         if response.status_code == 200:
             print("✓ 应用响应正常")
         else:

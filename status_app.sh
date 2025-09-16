@@ -42,18 +42,18 @@ echo ""
 
 # 检查端口状态
 echo "端口状态:"
-if netstat -tlnp | grep :8000 > /dev/null; then
-    echo "✓ 端口8000正在监听"
-    netstat -tlnp | grep :8000
+if netstat -tlnp | grep :80 > /dev/null; then
+    echo "✓ 端口80正在监听"
+    netstat -tlnp | grep :80
 else
-    echo "✗ 端口8000未监听"
+    echo "✗ 端口80未监听"
 fi
 
 echo ""
 
 # 检查应用响应
 echo "应用响应测试:"
-if curl -s http://localhost:8000/ > /dev/null 2>&1; then
+if curl -s http://localhost:80/ > /dev/null 2>&1; then
     echo "✓ 应用响应正常"
 else
     echo "✗ 应用无响应"
