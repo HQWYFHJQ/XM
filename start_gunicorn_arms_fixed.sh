@@ -10,12 +10,26 @@ echo "激活conda环境..."
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate condavenv
 
-# 设置阿里云ARMS环境变量
+# 设置阿里云ARMS环境变量（在conda激活后重新设置）
 export ARMS_APP_NAME=campus_market
 export ARMS_REGION_ID=cn-hangzhou
 export ARMS_LICENSE_KEY=biimgsqhcm@6ca181feeeac0da
 export ARMS_IS_PUBLIC=True
 export ARMS_ENDPOINT=https://arms-dc-hz.aliyuncs.com
+# 强制使用公网地址，避免内网连接超时
+export ARMS_FORCE_PUBLIC=True
+export ARMS_DISABLE_INTRANET=True
+# 设置网络策略为公网
+export PROFILER_NETWORK_STRATEGY=public
+export APSARA_APM_METASERVER_ADDRESS=https://arms-dc-hz.aliyuncs.com
+
+# 确保环境变量在conda环境中可用
+echo "验证conda环境中的ARMS变量..."
+echo "ARMS_APP_NAME: $ARMS_APP_NAME"
+echo "ARMS_REGION_ID: $ARMS_REGION_ID"
+echo "ARMS_LICENSE_KEY: ${ARMS_LICENSE_KEY:0:8}...${ARMS_LICENSE_KEY: -4}"
+echo "ARMS_IS_PUBLIC: $ARMS_IS_PUBLIC"
+echo "ARMS_ENDPOINT: $ARMS_ENDPOINT"
 
 echo "环境变量设置:"
 echo "ARMS_APP_NAME: $ARMS_APP_NAME"
@@ -74,7 +88,8 @@ echo ""
 
 # 使用ARMS探针启动Gunicorn（后台运行）
 echo "启动应用..."
-nohup aliyun-instrument gunicorn --config gunicorn.conf.py wsgi:app > logs/gunicorn_service.log 2>&1 &
+# 确保环境变量传递给aliyun-instrument
+nohup env ARMS_APP_NAME=$ARMS_APP_NAME ARMS_REGION_ID=$ARMS_REGION_ID ARMS_LICENSE_KEY=$ARMS_LICENSE_KEY ARMS_IS_PUBLIC=$ARMS_IS_PUBLIC ARMS_ENDPOINT=$ARMS_ENDPOINT aliyun-instrument gunicorn --config gunicorn.conf.py wsgi:app > logs/gunicorn_service.log 2>&1 &
 
 APP_PID=$!
 echo "应用PID: $APP_PID"
