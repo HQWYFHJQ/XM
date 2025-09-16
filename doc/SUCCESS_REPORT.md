@@ -6,7 +6,7 @@
 
 ### 🌐 访问地址
 
-- **主应用**: http://localhost:8000 ✅ 正常运行
+- **主应用**: http://localhost:80 ✅ 正常运行
 - **管理后台**: http://localhost:8080/admin ✅ 正常运行
 
 ### 🔧 已解决的问题
@@ -40,7 +40,7 @@
 ✅ 依赖包: 全部安装完成
 ✅ MySQL数据库: 连接正常 (端口5081)
 ✅ Redis缓存: 连接正常
-✅ 主应用: 运行在端口8000
+✅ 主应用: 运行在端口80
 ✅ 管理后台: 运行在端口8080
 ```
 
@@ -125,7 +125,7 @@ cd /root/GraduationProject
 ```
 
 #### 访问应用
-- 主应用: http://localhost:8000
+- 主应用: http://localhost:80
 - 管理后台: http://localhost:8080/admin
 
 ### 🔍 测试验证
@@ -188,5 +188,5 @@ cd /root/GraduationProject
 **启动时间**: 2024年1月
 **状态**: ✅ 运行中
 **访问地址**: 
-- 主应用: http://localhost:8000
+- 主应用: http://localhost:80
 - 管理后台: http://localhost:8080/admin

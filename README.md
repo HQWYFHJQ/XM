@@ -114,7 +114,7 @@ vim .env
 ```
 
 5. **访问应用**
-- 主应用: http://localhost:8000
+- 主应用: http://localhost:80
 - 管理后台: http://localhost:8080/admin
 
 ### 手动安装
@@ -173,7 +173,7 @@ REDIS_DB=0
 
 ```env
 SECRET_KEY=your-secret-key
-MAIN_PORT=8000
+MAIN_PORT=80
 ADMIN_PORT=8080
 ```
 

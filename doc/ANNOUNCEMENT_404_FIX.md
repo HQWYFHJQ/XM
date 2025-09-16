@@ -78,7 +78,7 @@
 
 4. **验证修复**:
    ```bash
-   curl -v http://localhost:8000/api/announcements/check-login
+   curl -v http://localhost:80/api/announcements/check-login
    ```
 
 ## 预期效果

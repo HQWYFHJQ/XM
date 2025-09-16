@@ -145,9 +145,9 @@ mysql -u root -p -e "CREATE DATABASE campus_market CHARACTER SET utf8mb4 COLLATE
 ```
 
 ### 访问地址
-- 主应用: http://localhost:8000
+- 主应用: http://localhost:80
 - 管理后台: http://localhost:8080/admin
-- 数据可视化: http://localhost:8000/data-viz/dashboard
+- 数据可视化: http://localhost:80/data-viz/dashboard
 
 ## 项目结构
 

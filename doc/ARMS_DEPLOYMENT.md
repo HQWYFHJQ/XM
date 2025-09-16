@@ -68,7 +68,7 @@ sudo systemctl status campus-market-arms
 python test_arms.py
 
 # 检查应用状态
-curl http://localhost:8000/
+curl http://localhost:80/
 
 # 查看日志
 tail -f logs/gunicorn_access.log

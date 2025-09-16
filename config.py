@@ -44,7 +44,7 @@ class Config:
     VERIFICATION_CODE_LENGTH = int(os.environ.get('VERIFICATION_CODE_LENGTH') or 6)
     
     # 应用端口
-    MAIN_PORT = int(os.environ.get('MAIN_PORT') or 8000)
+    MAIN_PORT = int(os.environ.get('MAIN_PORT') or 80)
     ADMIN_PORT = int(os.environ.get('ADMIN_PORT') or 8080)
     
     # AI模型配置

@@ -14,6 +14,9 @@ class UserBehavior(db.Model):
     user_agent = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     
+    # 关系
+    item = db.relationship('Item', back_populates='behaviors', lazy='select')
+    
     # 复合索引
     __table_args__ = (
         db.Index('idx_user_item_behavior', 'user_id', 'item_id', 'behavior_type'),

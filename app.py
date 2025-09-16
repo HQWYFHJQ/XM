@@ -5,9 +5,6 @@
 主应用入口文件
 """
 
-# 引入阿里云ARMS探针（必须在其他导入之前）
-from aliyun.opentelemetry.instrumentation.auto_instrumentation import sitecustomize
-
 from app import create_app, db
 from app.models import User, Item, Category, UserBehavior, Recommendation, Transaction, Announcement
 import os

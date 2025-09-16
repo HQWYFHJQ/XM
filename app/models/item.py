@@ -60,7 +60,7 @@ class Item(db.Model):
     sold_at = db.Column(db.DateTime, nullable=True)
     
     # 关系
-    behaviors = db.relationship('UserBehavior', backref='behavior_item', lazy='dynamic', cascade='all, delete-orphan')
+    behaviors = db.relationship('UserBehavior', back_populates='item', lazy='dynamic', cascade='all, delete-orphan')
     recommendations = db.relationship('Recommendation', backref='recommendation_item', lazy='dynamic', cascade='all, delete-orphan')
     transactions = db.relationship('Transaction', backref='item', lazy='dynamic', cascade='all, delete-orphan')
     
