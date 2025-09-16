@@ -48,7 +48,7 @@ def get_unread_announcements():
             'message': '获取未读公告失败'
         }), 500
 
-@announcement_api_bp.route('/api/announcements/<int:announcement_id>/mark-read', methods=['POST'])
+@announcement_api_bp.route('/announcements/<int:announcement_id>/mark-read', methods=['POST'])
 @login_required
 def mark_announcement_read(announcement_id):
     """标记公告为已读"""
@@ -76,7 +76,7 @@ def mark_announcement_read(announcement_id):
             'message': '标记失败'
         }), 500
 
-@announcement_api_bp.route('/api/announcements/mark-all-read', methods=['POST'])
+@announcement_api_bp.route('/announcements/mark-all-read', methods=['POST'])
 @login_required
 def mark_all_announcements_read():
     """标记所有公告为已读"""
@@ -101,7 +101,7 @@ def mark_all_announcements_read():
             'message': '标记失败'
         }), 500
 
-@announcement_api_bp.route('/api/announcements/check-login', methods=['GET'])
+@announcement_api_bp.route('/announcements/check-login', methods=['GET'])
 @login_required
 def check_login_announcements():
     """检查登录时是否有未读公告（用于弹窗提示）"""
